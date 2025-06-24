@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { BarChart, Plus, MessageSquare, Users, Calendar } from 'lucide-react';
+import { BarChart, Plus, MessageSquare, Users, Calendar, Trophy } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -12,6 +11,7 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     { id: 'dashboard', label: 'Dashboard', icon: BarChart },
     { id: 'logger', label: 'Log Activity', icon: Plus },
     { id: 'analytics', label: 'Analytics', icon: Calendar },
+    { id: 'contests', label: 'Contests', icon: Trophy },
     { id: 'chat', label: 'Team Chat', icon: MessageSquare },
     { id: 'bulletin', label: 'Bulletin Board', icon: Users },
   ];

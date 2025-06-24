@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { Dashboard } from '@/components/Dashboard';
@@ -6,6 +5,7 @@ import { ActivityLogger } from '@/components/ActivityLogger';
 import { Chat } from '@/components/Chat';
 import { BulletinBoard } from '@/components/BulletinBoard';
 import { Analytics } from '@/components/Analytics';
+import { Contests } from '@/components/Contests';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -19,6 +19,8 @@ const Index = () => {
         return <ActivityLogger currentUser={currentUser} />;
       case 'analytics':
         return <Analytics />;
+      case 'contests':
+        return <Contests currentUser={currentUser} />;
       case 'chat':
         return <Chat currentUser={currentUser} />;
       case 'bulletin':
