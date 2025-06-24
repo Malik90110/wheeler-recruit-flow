@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Users, Arrow } from 'lucide-react';
+import { MessageSquare, Users } from 'lucide-react';
 
 interface ChatProps {
   currentUser: string;
