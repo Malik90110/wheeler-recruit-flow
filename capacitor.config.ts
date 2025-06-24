@@ -2,7 +2,7 @@
 import { CapacitorConfig } from '@capacitor/core';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.5b9f1f590d794145804c12689091eb54',
+  appId: 'com.wheelerstaffing.recruitflow',
   appName: 'wheeler-recruit-flow',
   webDir: 'dist',
   server: {
