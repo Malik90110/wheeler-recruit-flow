@@ -1,0 +1,15 @@
+
+import { CapacitorConfig } from '@capacitor/core';
+
+const config: CapacitorConfig = {
+  appId: 'app.lovable.5b9f1f590d794145804c12689091eb54',
+  appName: 'wheeler-recruit-flow',
+  webDir: 'dist',
+  server: {
+    url: 'https://5b9f1f59-0d79-4145-804c-12689091eb54.lovableproject.com?forceHideBadge=true',
+    cleartext: true
+  },
+  bundledWebRuntime: false
+};
+
+export default config;
