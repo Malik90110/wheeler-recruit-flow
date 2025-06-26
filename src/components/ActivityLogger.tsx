@@ -66,12 +66,12 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
           notes: data.notes || ''
         });
         
-        // Pre-populate form with existing data
+        // Pre-populate form with existing data - fix the type error here
         setActivities({
-          interviewsScheduled: (data.interviews_scheduled || 0).toString(),
-          offersSent: (data.offers_sent || 0).toString(),
-          hiresMade: (data.hires_made || 0).toString(),
-          candidatesContacted: (data.candidates_contacted || 0).toString(),
+          interviewsScheduled: String(data.interviews_scheduled || 0),
+          offersSent: String(data.offers_sent || 0),
+          hiresMade: String(data.hires_made || 0),
+          candidatesContacted: String(data.candidates_contacted || 0),
           notes: data.notes || ''
         });
       }
