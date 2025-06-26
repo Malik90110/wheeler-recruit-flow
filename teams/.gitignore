@@ -1,0 +1,7 @@
+
+# Ignore generated zip files
+*.zip
+
+# Icon files (add your actual icons)
+icon-color.png
+icon-outline.png
