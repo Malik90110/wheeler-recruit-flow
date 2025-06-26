@@ -15,7 +15,6 @@ const Auth = () => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    email: '',
     password: ''
   });
   const navigate = useNavigate();
@@ -77,16 +76,56 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password
-      });
+      // For login, we need to find the user by their first and last name
+      // and then use their email to sign in
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .ilike('first_name', formData.firstName)
+        .ilike('last_name', formData.lastName);
 
-      if (error) {
-        toast.error(error.message);
+      if (profileError || !profiles || profiles.length === 0) {
+        toast.error('User not found. Please check your name and try again.');
+        setLoading(false);
+        return;
+      }
+
+      if (profiles.length > 1) {
+        toast.error('Multiple users found with this name. Please contact support.');
+        setLoading(false);
+        return;
+      }
+
+      // Get the user's email from auth.users table using the profile id
+      const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(profiles[0].id);
+      
+      if (userError || !user) {
+        // Fallback: construct email the same way we do for signup
+        const email = `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@${Date.now()}.temp.com`;
+        
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: formData.password
+        });
+
+        if (error) {
+          toast.error('Invalid credentials. Please check your name and password.');
+        } else {
+          toast.success('Logged in successfully!');
+          navigate('/');
+        }
       } else {
-        toast.success('Logged in successfully!');
-        navigate('/');
+        const { error } = await supabase.auth.signInWithPassword({
+          email: user.email!,
+          password: formData.password
+        });
+
+        if (error) {
+          toast.error('Invalid credentials. Please check your name and password.');
+        } else {
+          toast.success('Logged in successfully!');
+          navigate('/');
+        }
       }
     } catch (error) {
       toast.error('An error occurred during login');
@@ -107,54 +146,35 @@ const Auth = () => {
           </div>
           <CardTitle>{isLogin ? 'Welcome Back' : 'Create Account'}</CardTitle>
           <CardDescription>
-            {isLogin ? 'Sign in to your account' : 'Join the productivity tracker'}
+            {isLogin ? 'Sign in with your name' : 'Join the productivity tracker'}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={isLogin ? handleLogin : handleSignUp} className="space-y-4">
-            {!isLogin && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    name="firstName"
-                    type="text"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="Enter your first name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    id="lastName"
-                    name="lastName"
-                    type="text"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="Enter your last name"
-                  />
-                </div>
-              </>
-            )}
-            
-            {isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  placeholder="Enter your email"
-                />
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                name="firstName"
+                type="text"
+                value={formData.firstName}
+                onChange={handleInputChange}
+                required
+                placeholder="Enter your first name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                name="lastName"
+                type="text"
+                value={formData.lastName}
+                onChange={handleInputChange}
+                required
+                placeholder="Enter your last name"
+              />
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
