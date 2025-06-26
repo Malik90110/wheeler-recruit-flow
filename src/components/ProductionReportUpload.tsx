@@ -185,68 +185,97 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
   const checkDiscrepancies = async (reportId: string, reportData: any[]) => {
     const today = new Date().toISOString().split('T')[0];
     
-    // Get today's activity logs for comparison - join with profiles table
-    const { data: activityLogs } = await supabase
-      .from('activity_logs')
-      .select(`
-        *,
-        profiles!inner(first_name, last_name)
-      `)
-      .eq('date', today);
+    try {
+      // Get today's activity logs
+      const { data: activityLogsData, error: activityLogsError } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .eq('date', today);
 
-    if (!activityLogs) return;
+      if (activityLogsError) {
+        console.error('Error fetching activity logs:', activityLogsError);
+        return;
+      }
 
-    const discrepancies = [];
+      if (!activityLogsData || activityLogsData.length === 0) {
+        console.log('No activity logs found for today');
+        return;
+      }
 
-    for (const reportEntry of reportData) {
-      // Find matching activity log by name (simplified matching)
-      const matchingLog = activityLogs.find(log => {
-        if (!log.profiles) return false;
-        const fullName = `${log.profiles.first_name} ${log.profiles.last_name}`;
-        return fullName.toLowerCase().includes(reportEntry.employee_name.toLowerCase()) ||
-               reportEntry.employee_name.toLowerCase().includes(fullName.toLowerCase());
-      });
+      // Get user IDs from activity logs
+      const userIds = [...new Set(activityLogsData.map(log => log.user_id))];
 
-      if (matchingLog) {
-        const fields = [
-          { name: 'interviews_scheduled', reported: reportEntry.interviews_scheduled, logged: matchingLog.interviews_scheduled },
-          { name: 'offers_sent', reported: reportEntry.offers_sent, logged: matchingLog.offers_sent },
-          { name: 'hires_made', reported: reportEntry.hires_made, logged: matchingLog.hires_made },
-          { name: 'candidates_contacted', reported: reportEntry.candidates_contacted, logged: matchingLog.candidates_contacted }
-        ];
+      // Get profiles for these users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', userIds);
 
-        for (const field of fields) {
-          if (field.reported !== field.logged) {
-            discrepancies.push({
-              report_id: reportId,
-              user_id: matchingLog.user_id,
-              report_date: today,
-              field_name: field.name,
-              reported_value: field.reported,
-              logged_value: field.logged,
-              status: 'pending'
-            });
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        return;
+      }
+
+      // Combine activity logs with profiles
+      const activityLogs = activityLogsData.map(log => ({
+        ...log,
+        profiles: profilesData?.find(profile => profile.id === log.user_id) || null
+      }));
+
+      const discrepancies = [];
+
+      for (const reportEntry of reportData) {
+        // Find matching activity log by name (simplified matching)
+        const matchingLog = activityLogs.find(log => {
+          if (!log.profiles) return false;
+          const fullName = `${log.profiles.first_name} ${log.profiles.last_name}`;
+          return fullName.toLowerCase().includes(reportEntry.employee_name.toLowerCase()) ||
+                 reportEntry.employee_name.toLowerCase().includes(fullName.toLowerCase());
+        });
+
+        if (matchingLog) {
+          const fields = [
+            { name: 'interviews_scheduled', reported: reportEntry.interviews_scheduled, logged: matchingLog.interviews_scheduled },
+            { name: 'offers_sent', reported: reportEntry.offers_sent, logged: matchingLog.offers_sent },
+            { name: 'hires_made', reported: reportEntry.hires_made, logged: matchingLog.hires_made },
+            { name: 'candidates_contacted', reported: reportEntry.candidates_contacted, logged: matchingLog.candidates_contacted }
+          ];
+
+          for (const field of fields) {
+            if (field.reported !== field.logged) {
+              discrepancies.push({
+                report_id: reportId,
+                user_id: matchingLog.user_id,
+                report_date: today,
+                field_name: field.name,
+                reported_value: field.reported,
+                logged_value: field.logged,
+                status: 'pending'
+              });
+            }
           }
         }
       }
-    }
 
-    if (discrepancies.length > 0) {
-      const { error } = await supabase
-        .from('activity_discrepancies')
-        .insert(discrepancies);
+      if (discrepancies.length > 0) {
+        const { error } = await supabase
+          .from('activity_discrepancies')
+          .insert(discrepancies);
 
-      if (error) {
-        console.error('Error inserting discrepancies:', error);
-      } else {
-        // Update discrepancies count
-        await supabase
-          .from('production_reports')
-          .update({ discrepancies_found: discrepancies.length })
-          .eq('id', reportId);
+        if (error) {
+          console.error('Error inserting discrepancies:', error);
+        } else {
+          // Update discrepancies count
+          await supabase
+            .from('production_reports')
+            .update({ discrepancies_found: discrepancies.length })
+            .eq('id', reportId);
 
-        toast.warning(`Found ${discrepancies.length} discrepancies that require management review`);
+          toast.warning(`Found ${discrepancies.length} discrepancies that require management review`);
+        }
       }
+    } catch (error) {
+      console.error('Error checking discrepancies:', error);
     }
   };
 

@@ -34,22 +34,49 @@ export const DiscrepancyReview = () => {
 
   const fetchDiscrepancies = async () => {
     try {
-      const { data, error } = await supabase
+      // First get discrepancies
+      const { data: discrepanciesData, error: discrepanciesError } = await supabase
         .from('activity_discrepancies')
-        .select(`
-          *,
-          profiles!inner(first_name, last_name)
-        `)
+        .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching discrepancies:', error);
+      if (discrepanciesError) {
+        console.error('Error fetching discrepancies:', discrepanciesError);
         toast.error('Failed to load discrepancies');
         setDiscrepancies([]);
-      } else {
-        setDiscrepancies(data || []);
+        return;
       }
+
+      if (!discrepanciesData || discrepanciesData.length === 0) {
+        setDiscrepancies([]);
+        return;
+      }
+
+      // Get user IDs from discrepancies
+      const userIds = [...new Set(discrepanciesData.map(d => d.user_id))];
+
+      // Get profiles for these users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        // Still show discrepancies even if profiles fail to load
+        setDiscrepancies(discrepanciesData);
+        return;
+      }
+
+      // Combine discrepancies with profiles
+      const discrepanciesWithProfiles = discrepanciesData.map(discrepancy => ({
+        ...discrepancy,
+        profiles: profilesData?.find(profile => profile.id === discrepancy.user_id) || null
+      }));
+
+      setDiscrepancies(discrepanciesWithProfiles);
+
     } catch (error) {
       console.error('Error:', error);
       setDiscrepancies([]);
