@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -82,6 +81,8 @@ export const ComparisonChart = () => {
       setLoading(true);
       const today = new Date().toISOString().split('T')[0];
 
+      console.log('Fetching comparison data for user:', user.id, 'date:', today);
+
       // Get user's activity log for today
       const { data: activityData, error: activityError } = await supabase
         .from('activity_logs')
@@ -95,6 +96,8 @@ export const ComparisonChart = () => {
         return;
       }
 
+      console.log('Activity data:', activityData);
+
       // Get user's profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -107,51 +110,78 @@ export const ComparisonChart = () => {
         return;
       }
 
-      // Get production report entries for today that match this user
-      const userName = `${profileData.first_name} ${profileData.last_name}`;
+      console.log('Profile data:', profileData);
+
+      // Get production report entries for today
       const { data: reportEntries, error: reportError } = await supabase
         .from('production_report_entries')
         .select(`
           *,
           production_reports!inner(report_date)
         `)
-        .eq('production_reports.report_date', today)
-        .ilike('employee_name', `%${userName}%`);
+        .eq('production_reports.report_date', today);
 
       if (reportError) {
         console.error('Error fetching report entries:', reportError);
         return;
       }
 
+      console.log('All report entries for today:', reportEntries);
+
       // Create comparison data
       const comparisonData: ComparisonData[] = [];
       
       if (activityData && reportEntries && reportEntries.length > 0) {
-        const reportEntry = reportEntries[0]; // Take the first matching entry
+        const userName = `${profileData.first_name} ${profileData.last_name}`;
+        console.log('Looking for user name:', userName);
         
-        const fields = [
-          { name: 'Interviews Scheduled', userField: 'interviews_scheduled', reportField: 'interviews_scheduled' },
-          { name: 'Offers Sent', userField: 'offers_sent', reportField: 'offers_sent' },
-          { name: 'Hires Made', userField: 'hires_made', reportField: 'hires_made' },
-          { name: 'Candidates Contacted', userField: 'candidates_contacted', reportField: 'candidates_contacted' }
-        ];
-
-        fields.forEach(field => {
-          const userValue = activityData[field.userField as keyof typeof activityData] as number || 0;
-          const reportValue = reportEntry[field.reportField as keyof typeof reportEntry] as number || 0;
+        // Find matching report entry with case-insensitive comparison
+        const reportEntry = reportEntries.find(entry => {
+          const entryName = entry.employee_name?.toLowerCase() || '';
+          const userNameLower = userName.toLowerCase();
           
-          comparisonData.push({
-            field_name: field.name,
-            user_logged: userValue,
-            excel_reported: reportValue,
-            employee_name: userName,
-            difference: reportValue - userValue
-          });
+          console.log('Comparing:', entryName, 'with:', userNameLower);
+          
+          // Check if names match (case-insensitive, partial match)
+          return entryName.includes(userNameLower) || 
+                 userNameLower.includes(entryName) ||
+                 // Also check individual name parts
+                 entryName.includes(profileData.first_name.toLowerCase()) ||
+                 entryName.includes(profileData.last_name.toLowerCase());
         });
+
+        console.log('Found matching report entry:', reportEntry);
+        
+        if (reportEntry) {
+          const fields = [
+            { name: 'Interviews Scheduled', userField: 'interviews_scheduled', reportField: 'interviews_scheduled' },
+            { name: 'Offers Sent', userField: 'offers_sent', reportField: 'offers_sent' },
+            { name: 'Hires Made', userField: 'hires_made', reportField: 'hires_made' },
+            { name: 'Candidates Contacted', userField: 'candidates_contacted', reportField: 'candidates_contacted' }
+          ];
+
+          fields.forEach(field => {
+            const userValue = activityData[field.userField as keyof typeof activityData] as number || 0;
+            const reportValue = reportEntry[field.reportField as keyof typeof reportEntry] as number || 0;
+            
+            comparisonData.push({
+              field_name: field.name,
+              user_logged: userValue,
+              excel_reported: reportValue,
+              employee_name: userName,
+              difference: reportValue - userValue
+            });
+          });
+        } else {
+          console.log('No matching report entry found for user:', userName);
+          console.log('Available employee names:', reportEntries.map(e => e.employee_name));
+        }
+      } else {
+        console.log('Missing data - Activity:', !!activityData, 'Report entries:', reportEntries?.length || 0);
       }
 
       setComparisonData(comparisonData);
-      console.log('Comparison data updated:', comparisonData);
+      console.log('Final comparison data:', comparisonData);
     } catch (error) {
       console.error('Error fetching comparison data:', error);
     } finally {
