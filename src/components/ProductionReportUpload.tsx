@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { Upload, FileSpreadsheet, FileText, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import * as XLSX from 'xlsx';
 
 interface ProductionReportUploadProps {
   onUploadComplete?: () => void;
@@ -142,44 +142,103 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
     console.log('Processing report:', reportId);
     
     try {
-      // For now, we'll simulate processing since actual Excel/PDF parsing would require additional libraries
-      // In a real implementation, you'd use libraries like xlsx or pdf-parse
-      
-      // Updated mock data to match actual Excel column structure
-      const mockData = [
-        { 
-          employee_name: 'Malik Walker', 
-          employee_email: 'malik@company.com', 
-          interviews_scheduled: 15, // Maps to "Recruiter Interview: Recruiter Interview Scheduled"
-          offers_sent: 5, // Maps to "Extend Offer: Send Offer" 
-          hires_made: 2, // Maps to "Extend Offer: Offer Accepted"
-          candidates_contacted: 25 // Maps to "Capture: Capture Complete"
-        },
-        { 
-          employee_name: 'John Doe', 
-          employee_email: 'john@company.com', 
-          interviews_scheduled: 5, 
-          offers_sent: 2, 
-          hires_made: 1, 
-          candidates_contacted: 10 
-        },
-        { 
-          employee_name: 'Jane Smith', 
-          employee_email: 'jane@company.com', 
-          interviews_scheduled: 3, 
-          offers_sent: 1, 
-          hires_made: 0, 
-          candidates_contacted: 8 
+      let parsedData: any[] = [];
+
+      if (file.type.includes('sheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        // Parse Excel file
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        console.log('Raw Excel data:', jsonData);
+
+        // Find header row (usually the first row with data)
+        const headerRowIndex = jsonData.findIndex((row: any) => 
+          Array.isArray(row) && row.some((cell: any) => 
+            typeof cell === 'string' && cell.toLowerCase().includes('recruiter name')
+          )
+        );
+
+        if (headerRowIndex === -1) {
+          throw new Error('Could not find header row with "Recruiter Name" column');
         }
-      ];
 
-      console.log('Inserting mock data entries...');
+        const headers = jsonData[headerRowIndex] as string[];
+        console.log('Headers found:', headers);
 
-      // Insert mock data into production_report_entries
+        // Map column indices
+        const recruiterNameIndex = headers.findIndex(h => 
+          h && h.toLowerCase().includes('recruiter name')
+        );
+        const captureCompleteIndex = headers.findIndex(h => 
+          h && h.toLowerCase().includes('capture complete')
+        );
+        const interviewScheduledIndex = headers.findIndex(h => 
+          h && h.toLowerCase().includes('recruiter interview scheduled')
+        );
+        const sendOfferIndex = headers.findIndex(h => 
+          h && h.toLowerCase().includes('send offer')
+        );
+        const offerAcceptedIndex = headers.findIndex(h => 
+          h && h.toLowerCase().includes('offer accepted')
+        );
+
+        console.log('Column indices:', {
+          recruiterNameIndex,
+          captureCompleteIndex,
+          interviewScheduledIndex,
+          sendOfferIndex,
+          offerAcceptedIndex
+        });
+
+        // Process data rows
+        for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
+          const row = jsonData[i] as any[];
+          if (!row || row.length === 0) continue;
+
+          const recruiterName = row[recruiterNameIndex];
+          if (!recruiterName || typeof recruiterName !== 'string') continue;
+
+          // Extract numeric values, defaulting to 0 if not found or not numeric
+          const getNumericValue = (index: number) => {
+            if (index === -1 || !row[index]) return 0;
+            const value = typeof row[index] === 'number' ? row[index] : parseInt(row[index]) || 0;
+            return isNaN(value) ? 0 : value;
+          };
+
+          parsedData.push({
+            employee_name: recruiterName.trim(),
+            employee_email: `${recruiterName.toLowerCase().replace(/\s+/g, '.')}@company.com`,
+            interviews_scheduled: getNumericValue(interviewScheduledIndex),
+            offers_sent: getNumericValue(sendOfferIndex),
+            hires_made: getNumericValue(offerAcceptedIndex),
+            candidates_contacted: getNumericValue(captureCompleteIndex)
+          });
+        }
+
+        console.log('Parsed Excel data:', parsedData);
+
+      } else if (file.type === 'application/pdf') {
+        // For PDF files, we'd need a PDF parsing library
+        // For now, throw an error suggesting Excel format
+        throw new Error('PDF parsing not yet implemented. Please upload an Excel file (.xlsx or .xls)');
+      } else {
+        throw new Error('Unsupported file format');
+      }
+
+      if (parsedData.length === 0) {
+        throw new Error('No valid data found in the uploaded file. Please check the file format and column headers.');
+      }
+
+      console.log('Inserting parsed data entries...');
+
+      // Insert parsed data into production_report_entries
       const { error: entriesError } = await supabase
         .from('production_report_entries')
         .insert(
-          mockData.map(entry => ({
+          parsedData.map(entry => ({
             report_id: reportId,
             employee_name: entry.employee_name,
             employee_email: entry.employee_email,
@@ -198,14 +257,14 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
       console.log('Entries inserted successfully');
 
       // Check for discrepancies with user activity logs
-      await checkDiscrepancies(reportId, mockData);
+      await checkDiscrepancies(reportId, parsedData);
 
       // Update report status
       const { error: updateError } = await supabase
         .from('production_reports')
         .update({ 
           status: 'completed',
-          total_records: mockData.length,
+          total_records: parsedData.length,
           updated_at: new Date().toISOString()
         })
         .eq('id', reportId);
@@ -226,7 +285,7 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
         .update({ status: 'error' })
         .eq('id', reportId);
         
-      toast.error('Error processing the uploaded report');
+      toast.error(`Error processing the uploaded report: ${error.message}`);
     }
   };
 
