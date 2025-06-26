@@ -28,7 +28,7 @@
   "composeExtensions": [],
   "configurableTabs": [
     {
-      "configurationUrl": "https://your-app-domain.com/?teams=true&tab=config",
+      "configurationUrl": "https://5b9f1f59-0d79-4145-804c-12689091eb54.lovableproject.com/?teams=true&tab=config",
       "canUpdateConfiguration": true,
       "scopes": [
         "team",
@@ -46,8 +46,8 @@
     {
       "entityId": "dashboard",
       "name": "Dashboard",
-      "contentUrl": "https://your-app-domain.com/?teams=true&tab=dashboard",
-      "websiteUrl": "https://your-app-domain.com/",
+      "contentUrl": "https://5b9f1f59-0d79-4145-804c-12689091eb54.lovableproject.com/?teams=true&tab=dashboard",
+      "websiteUrl": "https://5b9f1f59-0d79-4145-804c-12689091eb54.lovableproject.com/",
       "scopes": [
         "personal"
       ]
@@ -55,8 +55,8 @@
     {
       "entityId": "bulletin",
       "name": "Bulletin Board",
-      "contentUrl": "https://your-app-domain.com/?teams=true&tab=bulletin",
-      "websiteUrl": "https://your-app-domain.com/",
+      "contentUrl": "https://5b9f1f59-0d79-4145-804c-12689091eb54.lovableproject.com/?teams=true&tab=bulletin",
+      "websiteUrl": "https://5b9f1f59-0d79-4145-804c-12689091eb54.lovableproject.com/",
       "scopes": [
         "personal"
       ]
@@ -67,10 +67,10 @@
     "messageTeamMembers"
   ],
   "validDomains": [
-    "your-app-domain.com"
+    "5b9f1f59-0d79-4145-804c-12689091eb54.lovableproject.com"
   ],
   "webApplicationInfo": {
-    "id": "your-azure-app-id",
-    "resource": "https://your-app-domain.com"
+    "id": "5b9f1f59-0d79-4145-804c-12689091eb54",
+    "resource": "https://5b9f1f59-0d79-4145-804c-12689091eb54.lovableproject.com"
   }
 }
