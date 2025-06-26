@@ -48,8 +48,8 @@ export const SignUpForm = ({ loading, setLoading }: SignUpFormProps) => {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success('Account created successfully!');
-        navigate('/');
+        toast.success('Account created successfully! Please check your email to confirm your account.');
+        // Don't navigate immediately, let user confirm email first
       }
     } catch (error) {
       toast.error('An error occurred during sign-up');
@@ -110,7 +110,7 @@ export const SignUpForm = ({ loading, setLoading }: SignUpFormProps) => {
         />
       </div>
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? 'Please wait...' : 'Create Account'}
+        {loading ? 'Creating Account...' : 'Create Account'}
       </Button>
     </form>
   );
