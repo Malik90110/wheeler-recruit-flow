@@ -33,7 +33,7 @@ export const LoginForm = ({ loading, setLoading }: LoginFormProps) => {
 
     try {
       // Use the same email format as signup
-      const email = `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@wheelerstaff.local`;
+      const email = `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@wheelerstaff.com`;
       
       const { error } = await supabase.auth.signInWithPassword({
         email: email,
