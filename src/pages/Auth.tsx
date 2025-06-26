@@ -42,9 +42,8 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      // For sign-up, we'll use the user's first name as part of the email
-      // since we're not asking for email explicitly
-      const email = `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@${Date.now()}.temp.com`;
+      // Create a consistent email format for signup
+      const email = `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@wheelerstaff.local`;
       
       const { error } = await supabase.auth.signUp({
         email: email,
@@ -76,56 +75,19 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      // For login, we need to find the user by their first and last name
-      // and then use their email to sign in
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .ilike('first_name', formData.firstName)
-        .ilike('last_name', formData.lastName);
-
-      if (profileError || !profiles || profiles.length === 0) {
-        toast.error('User not found. Please check your name and try again.');
-        setLoading(false);
-        return;
-      }
-
-      if (profiles.length > 1) {
-        toast.error('Multiple users found with this name. Please contact support.');
-        setLoading(false);
-        return;
-      }
-
-      // Get the user's email from auth.users table using the profile id
-      const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(profiles[0].id);
+      // Use the same email format as signup
+      const email = `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@wheelerstaff.local`;
       
-      if (userError || !user) {
-        // Fallback: construct email the same way we do for signup
-        const email = `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@${Date.now()}.temp.com`;
-        
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email,
-          password: formData.password
-        });
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: formData.password
+      });
 
-        if (error) {
-          toast.error('Invalid credentials. Please check your name and password.');
-        } else {
-          toast.success('Logged in successfully!');
-          navigate('/');
-        }
+      if (error) {
+        toast.error('Invalid credentials. Please check your name and password.');
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: user.email!,
-          password: formData.password
-        });
-
-        if (error) {
-          toast.error('Invalid credentials. Please check your name and password.');
-        } else {
-          toast.success('Logged in successfully!');
-          navigate('/');
-        }
+        toast.success('Logged in successfully!');
+        navigate('/');
       }
     } catch (error) {
       toast.error('An error occurred during login');
