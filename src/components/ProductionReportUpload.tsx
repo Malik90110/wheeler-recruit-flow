@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Upload, FileSpreadsheet, FileText, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,8 +57,8 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      toast.error('File size must be less than 10MB');
+    if (file.size > 20 * 1024 * 1024) { // 20MB limit
+      toast.error('File size must be less than 20MB');
       return;
     }
 
@@ -321,7 +320,7 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
           </div>
           
           <p className="text-xs text-gray-500">
-            Supported formats: Excel (.xlsx, .xls) and PDF files
+            Supported formats: Excel (.xlsx, .xls) and PDF files (up to 20MB)
           </p>
         </div>
       </div>
