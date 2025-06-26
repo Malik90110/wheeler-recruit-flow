@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { Plus, Save, Calendar, TrendingUp, Users, Briefcase, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -69,10 +67,10 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
         
         // Pre-populate form with existing data - ensure proper string conversion
         setActivities({
-          interviewsScheduled: (data.interviews_scheduled ?? 0).toString(),
-          offersSent: (data.offers_sent ?? 0).toString(),
-          hiresMade: (data.hires_made ?? 0).toString(),
-          candidatesContacted: (data.candidates_contacted ?? 0).toString(),
+          interviewsScheduled: String(data.interviews_scheduled ?? 0),
+          offersSent: String(data.offers_sent ?? 0),
+          hiresMade: String(data.hires_made ?? 0),
+          candidatesContacted: String(data.candidates_contacted ?? 0),
           notes: data.notes || ''
         });
       }
@@ -243,7 +241,7 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
                   </label>
                   <input
                     type="number"
-                    value={activities.interviewsScheduled?.toString() || ''}
+                    value={activities.interviewsScheduled || ''}
                     onChange={(e) => handleInputChange('interviewsScheduled', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="0"
@@ -256,7 +254,7 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
                   </label>
                   <input
                     type="number"
-                    value={activities.offersSent?.toString() || ''}
+                    value={activities.offersSent || ''}
                     onChange={(e) => handleInputChange('offersSent', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="0"
@@ -269,7 +267,7 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
                   </label>
                   <input
                     type="number"
-                    value={activities.hiresMade?.toString() || ''}
+                    value={activities.hiresMade || ''}
                     onChange={(e) => handleInputChange('hiresMade', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="0"
@@ -282,7 +280,7 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
                   </label>
                   <input
                     type="number"
-                    value={activities.candidatesContacted?.toString() || ''}
+                    value={activities.candidatesContacted || ''}
                     onChange={(e) => handleInputChange('candidatesContacted', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="0"
@@ -318,4 +316,3 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
     </div>
   );
 };
-
