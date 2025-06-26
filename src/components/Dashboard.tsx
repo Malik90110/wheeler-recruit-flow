@@ -8,19 +8,19 @@ interface DashboardProps {
 
 export const Dashboard = ({ currentUser }: DashboardProps) => {
   const [metrics, setMetrics] = useState({
-    interviewsScheduled: 15,
-    offersSent: 8,
-    hiresMade: 5,
-    totalCandidates: 32,
-    interviewToHireRatio: 33.3
+    interviewsScheduled: 0,
+    offersSent: 0,
+    hiresMade: 0,
+    totalCandidates: 0,
+    interviewToHireRatio: 0
   });
 
   const [weeklyTrend] = useState([
-    { day: 'Mon', interviews: 3, offers: 2, hires: 1 },
-    { day: 'Tue', interviews: 4, offers: 1, hires: 0 },
-    { day: 'Wed', interviews: 2, offers: 3, hires: 2 },
-    { day: 'Thu', interviews: 3, offers: 1, hires: 1 },
-    { day: 'Fri', interviews: 3, offers: 1, hires: 1 },
+    { day: 'Mon', interviews: 0, offers: 0, hires: 0 },
+    { day: 'Tue', interviews: 0, offers: 0, hires: 0 },
+    { day: 'Wed', interviews: 0, offers: 0, hires: 0 },
+    { day: 'Thu', interviews: 0, offers: 0, hires: 0 },
+    { day: 'Fri', interviews: 0, offers: 0, hires: 0 },
   ]);
 
   const metricCards = [
@@ -29,28 +29,28 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
       value: metrics.interviewsScheduled,
       icon: Calendar,
       color: 'bg-blue-500',
-      change: '+12%'
+      change: '0%'
     },
     {
       title: 'Offers Sent',
       value: metrics.offersSent,
       icon: MessageSquare,
       color: 'bg-green-500',
-      change: '+8%'
+      change: '0%'
     },
     {
       title: 'Hires Made',
       value: metrics.hiresMade,
       icon: Users,
       color: 'bg-purple-500',
-      change: '+25%'
+      change: '0%'
     },
     {
       title: 'Interview-to-Hire Ratio',
       value: `${metrics.interviewToHireRatio}%`,
       icon: ArrowUp,
       color: 'bg-orange-500',
-      change: '+5%'
+      change: '0%'
     }
   ];
 
@@ -63,7 +63,7 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
         </div>
         <div className="text-right">
           <p className="text-sm text-gray-500">Current Week</p>
-          <p className="text-lg font-semibold text-gray-900">Dec 16-22, 2024</p>
+          <p className="text-lg font-semibold text-gray-900">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
         </div>
       </div>
 
@@ -76,7 +76,7 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
                 <div className={`p-3 rounded-lg ${card.color}`}>
                   <Icon className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-sm font-medium text-green-600">{card.change}</span>
+                <span className="text-sm font-medium text-gray-600">{card.change}</span>
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mt-4">{card.value}</h3>
               <p className="text-gray-600 text-sm">{card.title}</p>
@@ -97,19 +97,19 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
                     <div className="h-2 bg-blue-200 rounded-full flex-1">
                       <div 
                         className="h-2 bg-blue-500 rounded-full"
-                        style={{ width: `${(day.interviews / 5) * 100}%` }}
+                        style={{ width: `${day.interviews > 0 ? (day.interviews / 5) * 100 : 0}%` }}
                       ></div>
                     </div>
                     <div className="h-2 bg-green-200 rounded-full flex-1">
                       <div 
                         className="h-2 bg-green-500 rounded-full"
-                        style={{ width: `${(day.offers / 3) * 100}%` }}
+                        style={{ width: `${day.offers > 0 ? (day.offers / 3) * 100 : 0}%` }}
                       ></div>
                     </div>
                     <div className="h-2 bg-purple-200 rounded-full flex-1">
                       <div 
                         className="h-2 bg-purple-500 rounded-full"
-                        style={{ width: `${(day.hires / 2) * 100}%` }}
+                        style={{ width: `${day.hires > 0 ? (day.hires / 2) * 100 : 0}%` }}
                       ></div>
                     </div>
                   </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Users } from 'lucide-react';
 
@@ -14,30 +15,7 @@ interface Message {
 }
 
 export const Chat = ({ currentUser }: ChatProps) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      sender: 'Sarah Johnson',
-      content: 'Great work on the Q4 numbers everyone! We exceeded our hiring goals by 15%.',
-      timestamp: new Date('2024-12-20T09:30:00'),
-      isCurrentUser: false
-    },
-    {
-      id: '2',
-      sender: 'Mike Chen',
-      content: 'Thanks Sarah! The tech sector placements really picked up in December.',
-      timestamp: new Date('2024-12-20T09:35:00'),
-      isCurrentUser: false
-    },
-    {
-      id: '3',
-      sender: currentUser,
-      content: 'Agreed! I had 3 successful placements this week alone. The new candidate sourcing strategy is working well.',
-      timestamp: new Date('2024-12-20T10:15:00'),
-      isCurrentUser: true
-    }
-  ]);
-
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -64,7 +42,7 @@ export const Chat = ({ currentUser }: ChatProps) => {
     }
   };
 
-  const onlineUsers = ['Sarah Johnson', 'Mike Chen', 'Lisa Park', 'Tom Wilson'];
+  const onlineUsers = [currentUser];
 
   return (
     <div className="max-w-6xl grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-8rem)]">
@@ -84,30 +62,37 @@ export const Chat = ({ currentUser }: ChatProps) => {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.isCurrentUser ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className={`max-w-xs lg:max-w-md ${message.isCurrentUser ? 'order-2' : 'order-1'}`}>
-                <div
-                  className={`px-4 py-2 rounded-lg ${
-                    message.isCurrentUser
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-900'
-                  }`}
-                >
-                  {!message.isCurrentUser && (
-                    <p className="text-xs font-medium mb-1 opacity-70">{message.sender}</p>
-                  )}
-                  <p className="text-sm">{message.content}</p>
-                </div>
-                <p className={`text-xs text-gray-500 mt-1 ${message.isCurrentUser ? 'text-right' : 'text-left'}`}>
-                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
+          {messages.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>No messages yet. Start the conversation!</p>
             </div>
-          ))}
+          ) : (
+            messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.isCurrentUser ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className={`max-w-xs lg:max-w-md ${message.isCurrentUser ? 'order-2' : 'order-1'}`}>
+                  <div
+                    className={`px-4 py-2 rounded-lg ${
+                      message.isCurrentUser
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-900'
+                    }`}
+                  >
+                    {!message.isCurrentUser && (
+                      <p className="text-xs font-medium mb-1 opacity-70">{message.sender}</p>
+                    )}
+                    <p className="text-sm">{message.content}</p>
+                  </div>
+                  <p className={`text-xs text-gray-500 mt-1 ${message.isCurrentUser ? 'text-right' : 'text-left'}`}>
+                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
           <div ref={messagesEndRef} />
         </div>
 

@@ -13,44 +13,7 @@ interface Announcement {
 }
 
 export const BulletinBoard = () => {
-  const [announcements] = useState<Announcement[]>([
-    {
-      id: '1',
-      title: 'Q1 2025 Goals and Objectives',
-      content: 'Team, as we head into the new year, our primary focus will be on expanding our technology sector placements. We\'re targeting a 20% increase in successful hires compared to Q4 2024. Please review the new client requirements document in the shared folder.',
-      author: 'Sarah Johnson - CEO',
-      date: new Date('2024-12-20T08:00:00'),
-      priority: 'high',
-      category: 'Strategy'
-    },
-    {
-      id: '2',
-      title: 'New CRM System Training - January 15th',
-      content: 'We\'ll be implementing a new CRM system to better track our candidate pipeline. Mandatory training session scheduled for January 15th at 2:00 PM EST. Remote participation available.',
-      author: 'Mike Chen - Operations Manager',
-      date: new Date('2024-12-19T14:30:00'),
-      priority: 'medium',
-      category: 'Training'
-    },
-    {
-      id: '3',
-      title: 'Holiday Schedule Reminder',
-      content: 'Office will be closed December 25th-26th and January 1st. Emergency contact information is available in your handbook. Enjoy the holidays!',
-      author: 'HR Department',
-      date: new Date('2024-12-18T10:00:00'),
-      priority: 'low',
-      category: 'Administrative'
-    },
-    {
-      id: '4',
-      title: 'Client Appreciation Event - January 20th',
-      content: 'Annual client appreciation dinner at the Grand Hotel. All recruiters are expected to attend. Please RSVP by January 10th. Business formal attire required.',
-      author: 'Lisa Park - Client Relations',
-      date: new Date('2024-12-17T16:00:00'),
-      priority: 'medium',
-      category: 'Events'
-    }
-  ]);
+  const [announcements] = useState<Announcement[]>([]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -84,53 +47,61 @@ export const BulletinBoard = () => {
         </div>
       </div>
 
-      <div className="grid gap-6">
-        {announcements.map((announcement) => (
-          <div key={announcement.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-2">
-                  <h2 className="text-xl font-semibold text-gray-900">{announcement.title}</h2>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getPriorityColor(announcement.priority)}`}>
-                    {announcement.priority.toUpperCase()}
-                  </span>
+      {announcements.length === 0 ? (
+        <div className="bg-white p-12 rounded-xl shadow-sm border border-gray-200 text-center">
+          <MessageSquare className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">No Announcements Yet</h2>
+          <p className="text-gray-600">Check back later for important company updates and announcements.</p>
+        </div>
+      ) : (
+        <div className="grid gap-6">
+          {announcements.map((announcement) => (
+            <div key={announcement.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <h2 className="text-xl font-semibold text-gray-900">{announcement.title}</h2>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getPriorityColor(announcement.priority)}`}>
+                      {announcement.priority.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
+                    <span className="flex items-center space-x-1">
+                      <MessageSquare className="w-4 h-4" />
+                      <span>{announcement.author}</span>
+                    </span>
+                    <span className="flex items-center space-x-1">
+                      <Calendar className="w-4 h-4" />
+                      <span>{announcement.date.toLocaleDateString()}</span>
+                    </span>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(announcement.category)}`}>
+                      {announcement.category}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
-                  <span className="flex items-center space-x-1">
-                    <MessageSquare className="w-4 h-4" />
-                    <span>{announcement.author}</span>
+              </div>
+              
+              <p className="text-gray-700 leading-relaxed">{announcement.content}</p>
+              
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500">
+                    Posted {announcement.date.toLocaleDateString('en-US', { 
+                      month: 'long', 
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
                   </span>
-                  <span className="flex items-center space-x-1">
-                    <Calendar className="w-4 h-4" />
-                    <span>{announcement.date.toLocaleDateString()}</span>
-                  </span>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(announcement.category)}`}>
-                    {announcement.category}
-                  </span>
+                  <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    Read More
+                  </button>
                 </div>
               </div>
             </div>
-            
-            <p className="text-gray-700 leading-relaxed">{announcement.content}</p>
-            
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">
-                  Posted {announcement.date.toLocaleDateString('en-US', { 
-                    month: 'long', 
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </span>
-                <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                  Read More
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
         <div className="flex items-center space-x-2 text-blue-800 mb-2">

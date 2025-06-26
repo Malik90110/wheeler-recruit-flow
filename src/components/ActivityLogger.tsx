@@ -15,24 +15,7 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
     notes: ''
   });
 
-  const [recentEntries] = useState([
-    {
-      date: '2024-12-20',
-      interviews: 3,
-      offers: 2,
-      hires: 1,
-      candidates: 8,
-      notes: 'Strong day with quality candidates'
-    },
-    {
-      date: '2024-12-19',
-      interviews: 2,
-      offers: 1,
-      hires: 0,
-      candidates: 6,
-      notes: 'Follow-up needed on pending offers'
-    }
-  ]);
+  const [recentEntries] = useState([]);
 
   const handleInputChange = (field: string, value: string) => {
     setActivities(prev => ({
@@ -155,44 +138,20 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Recent Entries</h2>
           
-          <div className="space-y-4">
-            {recentEntries.map((entry, index) => (
-              <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-medium text-gray-900">
-                    {new Date(entry.date).toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })}
-                  </h3>
+          {recentEntries.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>No entries yet. Start logging your activities!</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {recentEntries.map((entry, index) => (
+                <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  {/* Entry content would go here */}
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Interviews:</span>
-                    <span className="font-medium text-blue-600">{entry.interviews}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Offers:</span>
-                    <span className="font-medium text-green-600">{entry.offers}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Hires:</span>
-                    <span className="font-medium text-purple-600">{entry.hires}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Candidates:</span>
-                    <span className="font-medium text-orange-600">{entry.candidates}</span>
-                  </div>
-                </div>
-                
-                {entry.notes && (
-                  <p className="text-sm text-gray-600 mt-3 italic">"{entry.notes}"</p>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
