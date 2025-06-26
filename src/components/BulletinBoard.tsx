@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Users, Calendar, MessageSquare, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -64,7 +63,12 @@ export const BulletinBoard = () => {
       if (error) {
         console.error('Error fetching announcements:', error);
       } else {
-        setAnnouncements(data || []);
+        // Cast the priority field to the correct type
+        const typedAnnouncements = (data || []).map(announcement => ({
+          ...announcement,
+          priority: announcement.priority as 'high' | 'medium' | 'low'
+        }));
+        setAnnouncements(typedAnnouncements);
       }
     } catch (error) {
       console.error('Error fetching announcements:', error);
