@@ -132,35 +132,28 @@ export const ComparisonChart = () => {
       const comparisonData: ComparisonData[] = [];
       
       if (activityData && reportEntries && reportEntries.length > 0) {
-        const userName = `${profileData.first_name} ${profileData.last_name}`;
+        // Create proper case user name for display
+        const userName = `${profileData.first_name.charAt(0).toUpperCase() + profileData.first_name.slice(1).toLowerCase()} ${profileData.last_name.charAt(0).toUpperCase() + profileData.last_name.slice(1).toLowerCase()}`;
         console.log('Looking for user name:', userName);
         
-        // Create normalized names for comparison
+        // Create normalized names for comparison (case-insensitive)
         const normalizeString = (str: string) => str.toLowerCase().trim().replace(/\s+/g, ' ');
         const userNameNormalized = normalizeString(userName);
-        const firstNameNormalized = normalizeString(profileData.first_name);
-        const lastNameNormalized = normalizeString(profileData.last_name);
         
-        console.log('Normalized user name:', userNameNormalized);
-        console.log('Normalized first name:', firstNameNormalized);
-        console.log('Normalized last name:', lastNameNormalized);
+        console.log('Normalized user name for matching:', userNameNormalized);
         
-        // Find matching report entry with improved matching
+        // Find matching report entry with case-insensitive exact matching
         const reportEntry = reportEntries.find(entry => {
           if (!entry.employee_name) return false;
           
           const entryNameNormalized = normalizeString(entry.employee_name);
-          console.log('Comparing with entry:', entryNameNormalized);
+          console.log('Comparing with entry:', entry.employee_name, '-> normalized:', entryNameNormalized);
           
-          // Multiple matching strategies
-          return (
-            entryNameNormalized === userNameNormalized || // Exact match
-            entryNameNormalized.includes(firstNameNormalized) || // Contains first name
-            entryNameNormalized.includes(lastNameNormalized) || // Contains last name
-            userNameNormalized.includes(entryNameNormalized) || // User name contains entry name
-            // Check if both first and last names are present
-            (entryNameNormalized.includes(firstNameNormalized) && entryNameNormalized.includes(lastNameNormalized))
-          );
+          // Exact match (case-insensitive)
+          const isMatch = entryNameNormalized === userNameNormalized;
+          console.log('Match result:', isMatch);
+          
+          return isMatch;
         });
 
         console.log('Found matching report entry:', reportEntry);
