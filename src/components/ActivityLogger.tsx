@@ -65,12 +65,12 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
           notes: data.notes || ''
         });
         
-        // Pre-populate form with existing data - fix the type error by ensuring proper conversion
+        // Pre-populate form with existing data - fix the type error by ensuring proper number conversion
         setActivities({
-          interviewsScheduled: (data.interviews_scheduled ?? 0).toString(),
-          offersSent: (data.offers_sent ?? 0).toString(),
-          hiresMade: (data.hires_made ?? 0).toString(),
-          candidatesContacted: (data.candidates_contacted ?? 0).toString(),
+          interviewsScheduled: (data.interviews_scheduled || 0).toString(),
+          offersSent: (data.offers_sent || 0).toString(),
+          hiresMade: (data.hires_made || 0).toString(),
+          candidatesContacted: (data.candidates_contacted || 0).toString(),
           notes: data.notes || ''
         });
       }
