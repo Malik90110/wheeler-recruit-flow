@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Plus, Save, Calendar, TrendingUp, Users, Briefcase, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -242,7 +243,7 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
                   </label>
                   <input
                     type="number"
-                    value={activities.interviewsScheduled || ''}
+                    value={activities.interviewsScheduled?.toString() || ''}
                     onChange={(e) => handleInputChange('interviewsScheduled', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="0"
@@ -255,7 +256,7 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
                   </label>
                   <input
                     type="number"
-                    value={activities.offersSent || ''}
+                    value={activities.offersSent?.toString() || ''}
                     onChange={(e) => handleInputChange('offersSent', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="0"
@@ -268,7 +269,7 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
                   </label>
                   <input
                     type="number"
-                    value={activities.hiresMade || ''}
+                    value={activities.hiresMade?.toString() || ''}
                     onChange={(e) => handleInputChange('hiresMade', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="0"
@@ -281,7 +282,7 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
                   </label>
                   <input
                     type="number"
-                    value={activities.candidatesContacted || ''}
+                    value={activities.candidatesContacted?.toString() || ''}
                     onChange={(e) => handleInputChange('candidatesContacted', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="0"
@@ -317,3 +318,4 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
     </div>
   );
 };
+
