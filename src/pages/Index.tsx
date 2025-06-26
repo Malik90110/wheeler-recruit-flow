@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { Dashboard } from '@/components/Dashboard';
 import { ActivityLogger } from '@/components/ActivityLogger';
@@ -6,10 +7,62 @@ import { Chat } from '@/components/Chat';
 import { BulletinBoard } from '@/components/BulletinBoard';
 import { Analytics } from '@/components/Analytics';
 import { Contests } from '@/components/Contests';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [currentUser] = useState('John Smith'); // In real app, this would come from auth
+  const [currentUser, setCurrentUser] = useState('');
+  const { user, session, loading, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !session) {
+      navigate('/auth');
+    }
+  }, [session, loading, navigate]);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile) {
+          setCurrentUser(`${profile.first_name} ${profile.last_name}`);
+        }
+      }
+    };
+
+    if (user) {
+      fetchUserProfile();
+    }
+  }, [user]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return null; // Will redirect to auth
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -34,8 +87,18 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       <main className="flex-1 overflow-hidden">
-        <div className="h-full p-6">
-          {renderContent()}
+        <div className="h-full flex flex-col">
+          <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-white">
+            <h1 className="text-2xl font-bold text-gray-900">
+              Welcome back, {currentUser}!
+            </h1>
+            <Button variant="outline" onClick={handleSignOut}>
+              Sign Out
+            </Button>
+          </div>
+          <div className="flex-1 p-6">
+            {renderContent()}
+          </div>
         </div>
       </main>
     </div>
