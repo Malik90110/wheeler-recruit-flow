@@ -135,19 +135,32 @@ export const ComparisonChart = () => {
         const userName = `${profileData.first_name} ${profileData.last_name}`;
         console.log('Looking for user name:', userName);
         
-        // Find matching report entry with case-insensitive comparison
+        // Create normalized names for comparison
+        const normalizeString = (str: string) => str.toLowerCase().trim().replace(/\s+/g, ' ');
+        const userNameNormalized = normalizeString(userName);
+        const firstNameNormalized = normalizeString(profileData.first_name);
+        const lastNameNormalized = normalizeString(profileData.last_name);
+        
+        console.log('Normalized user name:', userNameNormalized);
+        console.log('Normalized first name:', firstNameNormalized);
+        console.log('Normalized last name:', lastNameNormalized);
+        
+        // Find matching report entry with improved matching
         const reportEntry = reportEntries.find(entry => {
-          const entryName = entry.employee_name?.toLowerCase() || '';
-          const userNameLower = userName.toLowerCase();
+          if (!entry.employee_name) return false;
           
-          console.log('Comparing:', entryName, 'with:', userNameLower);
+          const entryNameNormalized = normalizeString(entry.employee_name);
+          console.log('Comparing with entry:', entryNameNormalized);
           
-          // Check if names match (case-insensitive, partial match)
-          return entryName.includes(userNameLower) || 
-                 userNameLower.includes(entryName) ||
-                 // Also check individual name parts
-                 entryName.includes(profileData.first_name.toLowerCase()) ||
-                 entryName.includes(profileData.last_name.toLowerCase());
+          // Multiple matching strategies
+          return (
+            entryNameNormalized === userNameNormalized || // Exact match
+            entryNameNormalized.includes(firstNameNormalized) || // Contains first name
+            entryNameNormalized.includes(lastNameNormalized) || // Contains last name
+            userNameNormalized.includes(entryNameNormalized) || // User name contains entry name
+            // Check if both first and last names are present
+            (entryNameNormalized.includes(firstNameNormalized) && entryNameNormalized.includes(lastNameNormalized))
+          );
         });
 
         console.log('Found matching report entry:', reportEntry);
@@ -161,8 +174,10 @@ export const ComparisonChart = () => {
           ];
 
           fields.forEach(field => {
-            const userValue = activityData[field.userField as keyof typeof activityData] as number || 0;
-            const reportValue = reportEntry[field.reportField as keyof typeof reportEntry] as number || 0;
+            const userValue = Number(activityData[field.userField as keyof typeof activityData]) || 0;
+            const reportValue = Number(reportEntry[field.reportField as keyof typeof reportEntry]) || 0;
+            
+            console.log(`${field.name}: User=${userValue}, Report=${reportValue}`);
             
             comparisonData.push({
               field_name: field.name,
@@ -175,6 +190,26 @@ export const ComparisonChart = () => {
         } else {
           console.log('No matching report entry found for user:', userName);
           console.log('Available employee names:', reportEntries.map(e => e.employee_name));
+          
+          // Create comparison data with zeros for Excel values to show user data
+          const fields = [
+            { name: 'Interviews Scheduled', userField: 'interviews_scheduled' },
+            { name: 'Offers Sent', userField: 'offers_sent' },
+            { name: 'Hires Made', userField: 'hires_made' },
+            { name: 'Candidates Contacted', userField: 'candidates_contacted' }
+          ];
+
+          fields.forEach(field => {
+            const userValue = Number(activityData[field.userField as keyof typeof activityData]) || 0;
+            
+            comparisonData.push({
+              field_name: field.name,
+              user_logged: userValue,
+              excel_reported: 0,
+              employee_name: userName,
+              difference: 0 - userValue
+            });
+          });
         }
       } else {
         console.log('Missing data - Activity:', !!activityData, 'Report entries:', reportEntries?.length || 0);
