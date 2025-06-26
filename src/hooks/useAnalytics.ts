@@ -38,28 +38,47 @@ export const useAnalytics = (timeFilter: string, recruiterFilter: string) => {
       setLoading(true);
       
       try {
-        // For now, we'll use the profiles table to get team members
-        // In a real implementation, you'd have activity logs table
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('first_name, last_name');
+        // Fetch activity logs with profile data
+        const { data: activityLogs, error: logsError } = await supabase
+          .from('activity_logs')
+          .select(`
+            *,
+            profiles!inner(first_name, last_name)
+          `)
+          .order('date', { ascending: false });
 
-        if (profiles) {
-          // Generate realistic sample data based on actual team members
-          const teamData = profiles.map((profile, index) => {
-            const baseInterviews = 30 + Math.floor(Math.random() * 25);
-            const baseOffers = Math.floor(baseInterviews * (0.6 + Math.random() * 0.2));
-            const baseHires = Math.floor(baseOffers * (0.65 + Math.random() * 0.2));
-            const ratio = baseHires > 0 ? Number(((baseHires / baseInterviews) * 100).toFixed(1)) : 0;
+        if (logsError) {
+          console.error('Error fetching activity logs:', logsError);
+          throw logsError;
+        }
 
-            return {
-              name: `${profile.first_name} ${profile.last_name}`,
-              interviews: baseInterviews,
-              offers: baseOffers,
-              hires: baseHires,
-              ratio
-            };
+        if (activityLogs && activityLogs.length > 0) {
+          // Calculate team performance
+          const teamPerformance = new Map();
+          
+          activityLogs.forEach((log: any) => {
+            const name = `${log.profiles.first_name} ${log.profiles.last_name}`;
+            
+            if (!teamPerformance.has(name)) {
+              teamPerformance.set(name, {
+                name,
+                interviews: 0,
+                offers: 0,
+                hires: 0
+              });
+            }
+            
+            const member = teamPerformance.get(name);
+            member.interviews += log.interviews_scheduled || 0;
+            member.offers += log.offers_sent || 0;
+            member.hires += log.hires_made || 0;
           });
+
+          // Convert to array and add ratio
+          const teamData = Array.from(teamPerformance.values()).map((member: any) => ({
+            ...member,
+            ratio: member.interviews > 0 ? Number(((member.hires / member.interviews) * 100).toFixed(1)) : 0
+          }));
 
           // Calculate totals
           const totalInterviews = teamData.reduce((sum, member) => sum + member.interviews, 0);
@@ -67,17 +86,30 @@ export const useAnalytics = (timeFilter: string, recruiterFilter: string) => {
           const totalHires = teamData.reduce((sum, member) => sum + member.hires, 0);
           const successRate = totalInterviews > 0 ? Number(((totalHires / totalInterviews) * 100).toFixed(1)) : 0;
 
-          // Generate monthly trends (last 5 months)
-          const months = ['Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          const monthlyTrends = months.map((month, index) => {
-            const growth = 1 + (index * 0.1); // 10% growth each month
-            return {
-              month,
-              interviews: Math.floor(totalInterviews * 0.15 * growth),
-              offers: Math.floor(totalOffers * 0.15 * growth),
-              hires: Math.floor(totalHires * 0.15 * growth)
-            };
+          // Generate monthly trends from actual data
+          const monthlyData = new Map();
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          
+          activityLogs.forEach((log: any) => {
+            const date = new Date(log.date);
+            const monthKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+            
+            if (!monthlyData.has(monthKey)) {
+              monthlyData.set(monthKey, {
+                month: monthNames[date.getMonth()],
+                interviews: 0,
+                offers: 0,
+                hires: 0
+              });
+            }
+            
+            const month = monthlyData.get(monthKey);
+            month.interviews += log.interviews_scheduled || 0;
+            month.offers += log.offers_sent || 0;
+            month.hires += log.hires_made || 0;
           });
+
+          const monthlyTrends = Array.from(monthlyData.values()).slice(-6); // Last 6 months
 
           setData({
             totalInterviews,
@@ -87,10 +119,20 @@ export const useAnalytics = (timeFilter: string, recruiterFilter: string) => {
             monthlyTrends,
             teamData
           });
+        } else {
+          // No data available, set empty state
+          setData({
+            totalInterviews: 0,
+            totalOffers: 0,
+            totalHires: 0,
+            successRate: 0,
+            monthlyTrends: [],
+            teamData: []
+          });
         }
       } catch (error) {
         console.error('Error fetching analytics data:', error);
-        // Fallback to minimal data
+        // Fallback to empty data on error
         setData({
           totalInterviews: 0,
           totalOffers: 0,

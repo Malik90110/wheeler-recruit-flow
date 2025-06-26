@@ -1,12 +1,16 @@
 
 import React, { useState } from 'react';
 import { Plus, Save, Calendar } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface ActivityLoggerProps {
   currentUser: string;
 }
 
 export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
+  const { user } = useAuth();
   const [activities, setActivities] = useState({
     interviewsScheduled: '',
     offersSent: '',
@@ -14,8 +18,7 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
     candidatesContacted: '',
     notes: ''
   });
-
-  const [recentEntries] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setActivities(prev => ({
@@ -24,17 +27,51 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Saving activities:', activities);
-    // Here you would typically save to a database
-    setActivities({
-      interviewsScheduled: '',
-      offersSent: '',
-      hiresMade: '',
-      candidatesContacted: '',
-      notes: ''
-    });
+    
+    if (!user) {
+      toast.error('You must be logged in to save activities');
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      const { error } = await supabase
+        .from('activity_logs')
+        .upsert({
+          user_id: user.id,
+          date: new Date().toISOString().split('T')[0], // Today's date
+          interviews_scheduled: parseInt(activities.interviewsScheduled) || 0,
+          offers_sent: parseInt(activities.offersSent) || 0,
+          hires_made: parseInt(activities.hiresMade) || 0,
+          candidates_contacted: parseInt(activities.candidatesContacted) || 0,
+          notes: activities.notes || null,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,date'
+        });
+
+      if (error) {
+        console.error('Error saving activities:', error);
+        toast.error('Failed to save activities');
+      } else {
+        toast.success('Activities saved successfully!');
+        setActivities({
+          interviewsScheduled: '',
+          offersSent: '',
+          hiresMade: '',
+          candidatesContacted: '',
+          notes: ''
+        });
+      }
+    } catch (error) {
+      console.error('Error saving activities:', error);
+      toast.error('Failed to save activities');
+    }
+    
+    setLoading(false);
   };
 
   return (
@@ -50,7 +87,7 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
             <Plus className="w-5 h-5 mr-2 text-blue-600" />
@@ -127,31 +164,13 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
             
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50"
             >
               <Save className="w-5 h-5" />
-              <span>Save Activities</span>
+              <span>{loading ? 'Saving...' : 'Save Activities'}</span>
             </button>
           </form>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Recent Entries</h2>
-          
-          {recentEntries.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>No entries yet. Start logging your activities!</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {recentEntries.map((entry, index) => (
-                <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  {/* Entry content would go here */}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>
