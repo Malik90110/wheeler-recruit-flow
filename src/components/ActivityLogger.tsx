@@ -68,10 +68,10 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
         
         // Pre-populate form with existing data - ensure proper string conversion
         setActivities({
-          interviewsScheduled: String(data.interviews_scheduled || 0),
-          offersSent: String(data.offers_sent || 0),
-          hiresMade: String(data.hires_made || 0),
-          candidatesContacted: String(data.candidates_contacted || 0),
+          interviewsScheduled: (data.interviews_scheduled || 0).toString(),
+          offersSent: (data.offers_sent || 0).toString(),
+          hiresMade: (data.hires_made || 0).toString(),
+          candidatesContacted: (data.candidates_contacted || 0).toString(),
           notes: data.notes || ''
         });
       }
@@ -210,7 +210,7 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
                   <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-green-600 h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${Math.min(parseFloat(getConversionRate()), 100)}%` }}
+                      style={{ width: `${Math.min(parseFloat(getConversionRate().toString()), 100)}%` }}
                     ></div>
                   </div>
                 </div>
