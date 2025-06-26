@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus, Save, Calendar, TrendingUp, Users, Briefcase, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -66,12 +65,12 @@ export const ActivityLogger = ({ currentUser }: ActivityLoggerProps) => {
           notes: data.notes || ''
         });
         
-        // Pre-populate form with existing data - fix the type error here
+        // Pre-populate form with existing data - fix the type error by ensuring proper conversion
         setActivities({
-          interviewsScheduled: String(data.interviews_scheduled || 0),
-          offersSent: String(data.offers_sent || 0),
-          hiresMade: String(data.hires_made || 0),
-          candidatesContacted: String(data.candidates_contacted || 0),
+          interviewsScheduled: (data.interviews_scheduled ?? 0).toString(),
+          offersSent: (data.offers_sent ?? 0).toString(),
+          hiresMade: (data.hires_made ?? 0).toString(),
+          candidatesContacted: (data.candidates_contacted ?? 0).toString(),
           notes: data.notes || ''
         });
       }
