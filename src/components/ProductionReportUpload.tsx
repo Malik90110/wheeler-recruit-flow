@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Upload, FileSpreadsheet, FileText, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Upload, FileSpreadsheet, FileText, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -185,10 +185,13 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
   const checkDiscrepancies = async (reportId: string, reportData: any[]) => {
     const today = new Date().toISOString().split('T')[0];
     
-    // Get today's activity logs for comparison
+    // Get today's activity logs for comparison - join with profiles table
     const { data: activityLogs } = await supabase
       .from('activity_logs')
-      .select('*, profiles(first_name, last_name)')
+      .select(`
+        *,
+        profiles!inner(first_name, last_name)
+      `)
       .eq('date', today);
 
     if (!activityLogs) return;

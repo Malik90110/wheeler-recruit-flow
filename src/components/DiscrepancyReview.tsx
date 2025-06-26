@@ -14,7 +14,8 @@ interface Discrepancy {
   logged_value: number;
   status: string;
   manager_notes: string | null;
-  profiles: {
+  user_id: string;
+  profiles?: {
     first_name: string;
     last_name: string;
   } | null;
@@ -37,7 +38,7 @@ export const DiscrepancyReview = () => {
         .from('activity_discrepancies')
         .select(`
           *,
-          profiles!activity_discrepancies_user_id_fkey(first_name, last_name)
+          profiles!inner(first_name, last_name)
         `)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
@@ -45,11 +46,13 @@ export const DiscrepancyReview = () => {
       if (error) {
         console.error('Error fetching discrepancies:', error);
         toast.error('Failed to load discrepancies');
+        setDiscrepancies([]);
       } else {
         setDiscrepancies(data || []);
       }
     } catch (error) {
       console.error('Error:', error);
+      setDiscrepancies([]);
     } finally {
       setLoading(false);
     }
