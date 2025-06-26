@@ -32,8 +32,8 @@ export const SignUpForm = ({ loading, setLoading }: SignUpFormProps) => {
     setLoading(true);
 
     try {
-      // Create a valid email format for signup
-      const email = `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@wheelerstaff.com`;
+      // Create a valid email format for signup using a standard domain
+      const email = `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@example.com`;
       
       const { error } = await supabase.auth.signUp({
         email: email,
