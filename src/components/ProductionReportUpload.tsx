@@ -145,9 +145,32 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
       // For now, we'll simulate processing since actual Excel/PDF parsing would require additional libraries
       // In a real implementation, you'd use libraries like xlsx or pdf-parse
       
+      // Updated mock data to match actual Excel column structure
       const mockData = [
-        { employee_name: 'John Doe', employee_email: 'john@company.com', interviews_scheduled: 5, offers_sent: 2, hires_made: 1, candidates_contacted: 10 },
-        { employee_name: 'Jane Smith', employee_email: 'jane@company.com', interviews_scheduled: 3, offers_sent: 1, hires_made: 0, candidates_contacted: 8 }
+        { 
+          employee_name: 'Malik Walker', 
+          employee_email: 'malik@company.com', 
+          interviews_scheduled: 15, // Maps to "Recruiter Interview: Recruiter Interview Scheduled"
+          offers_sent: 5, // Maps to "Extend Offer: Send Offer" 
+          hires_made: 2, // Maps to "Extend Offer: Offer Accepted"
+          candidates_contacted: 25 // Maps to "Capture: Capture Complete"
+        },
+        { 
+          employee_name: 'John Doe', 
+          employee_email: 'john@company.com', 
+          interviews_scheduled: 5, 
+          offers_sent: 2, 
+          hires_made: 1, 
+          candidates_contacted: 10 
+        },
+        { 
+          employee_name: 'Jane Smith', 
+          employee_email: 'jane@company.com', 
+          interviews_scheduled: 3, 
+          offers_sent: 1, 
+          hires_made: 0, 
+          candidates_contacted: 8 
+        }
       ];
 
       console.log('Inserting mock data entries...');
