@@ -14,6 +14,7 @@ interface SignUpFormProps {
 
 export const SignUpForm = ({ loading, setLoading }: SignUpFormProps) => {
   const [formData, setFormData] = useState({
+    email: '',
     firstName: '',
     lastName: '',
     password: ''
@@ -32,11 +33,8 @@ export const SignUpForm = ({ loading, setLoading }: SignUpFormProps) => {
     setLoading(true);
 
     try {
-      // Create a valid email format for signup using a standard domain
-      const email = `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@example.com`;
-      
       const { error } = await supabase.auth.signUp({
-        email: email,
+        email: formData.email,
         password: formData.password,
         options: {
           data: {
@@ -62,6 +60,18 @@ export const SignUpForm = ({ loading, setLoading }: SignUpFormProps) => {
 
   return (
     <form onSubmit={handleSignUp} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          value={formData.email}
+          onChange={handleInputChange}
+          required
+          placeholder="Enter your email"
+        />
+      </div>
       <div className="space-y-2">
         <Label htmlFor="firstName">First Name</Label>
         <Input

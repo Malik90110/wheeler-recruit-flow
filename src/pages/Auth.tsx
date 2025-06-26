@@ -23,7 +23,7 @@ const Auth = () => {
   }, [navigate]);
 
   const title = isLogin ? 'Welcome Back' : 'Create Account';
-  const description = isLogin ? 'Sign in with your name' : 'Join the productivity tracker';
+  const description = isLogin ? 'Sign in to your account' : 'Join the productivity tracker';
   const switchText = isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in";
 
   return (

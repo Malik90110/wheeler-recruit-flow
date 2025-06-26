@@ -14,8 +14,7 @@ interface LoginFormProps {
 
 export const LoginForm = ({ loading, setLoading }: LoginFormProps) => {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    email: '',
     password: ''
   });
   const navigate = useNavigate();
@@ -32,16 +31,13 @@ export const LoginForm = ({ loading, setLoading }: LoginFormProps) => {
     setLoading(true);
 
     try {
-      // Use the same email format as signup
-      const email = `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@example.com`;
-      
       const { error } = await supabase.auth.signInWithPassword({
-        email: email,
+        email: formData.email,
         password: formData.password
       });
 
       if (error) {
-        toast.error('Invalid credentials. Please check your name and password.');
+        toast.error('Invalid credentials. Please check your email and password.');
       } else {
         toast.success('Logged in successfully!');
         navigate('/');
@@ -56,27 +52,15 @@ export const LoginForm = ({ loading, setLoading }: LoginFormProps) => {
   return (
     <form onSubmit={handleLogin} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="firstName">First Name</Label>
+        <Label htmlFor="email">Email</Label>
         <Input
-          id="firstName"
-          name="firstName"
-          type="text"
-          value={formData.firstName}
+          id="email"
+          name="email"
+          type="email"
+          value={formData.email}
           onChange={handleInputChange}
           required
-          placeholder="Enter your first name"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="lastName">Last Name</Label>
-        <Input
-          id="lastName"
-          name="lastName"
-          type="text"
-          value={formData.lastName}
-          onChange={handleInputChange}
-          required
-          placeholder="Enter your last name"
+          placeholder="Enter your email"
         />
       </div>
       <div className="space-y-2">
