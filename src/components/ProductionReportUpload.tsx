@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Upload, FileSpreadsheet, FileText, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,6 +47,8 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
       return;
     }
 
+    console.log('Starting file upload for:', file.name, 'Size:', file.size);
+
     const allowedTypes = [
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
       'application/vnd.ms-excel', // .xls
@@ -54,6 +57,7 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
 
     if (!allowedTypes.includes(file.type)) {
       toast.error('Please upload an Excel file (.xlsx, .xls) or PDF file');
+      console.error('Invalid file type:', file.type);
       return;
     }
 
@@ -63,6 +67,7 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
     }
 
     setUploading(true);
+    console.log('Upload started...');
 
     try {
       // Generate unique filename
@@ -70,21 +75,30 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
+      console.log('Uploading to path:', filePath);
+
       // Upload file to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('production-reports')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
-        toast.error('Failed to upload file');
+        toast.error(`Failed to upload file: ${uploadError.message}`);
         return;
       }
+
+      console.log('File uploaded successfully:', uploadData);
 
       // Get public URL for the file
       const { data: { publicUrl } } = supabase.storage
         .from('production-reports')
         .getPublicUrl(filePath);
+
+      console.log('Public URL:', publicUrl);
 
       // Create production report record
       const today = new Date().toISOString().split('T')[0];
@@ -102,10 +116,11 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
 
       if (dbError) {
         console.error('Database error:', dbError);
-        toast.error('Failed to save report information');
+        toast.error(`Failed to save report information: ${dbError.message}`);
         return;
       }
 
+      console.log('Report record created:', reportData);
       toast.success('Production report uploaded successfully! Processing will begin shortly.');
       
       // Process the file
@@ -124,6 +139,8 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
   };
 
   const processProductionReport = async (reportId: string, file: File) => {
+    console.log('Processing report:', reportId);
+    
     try {
       // For now, we'll simulate processing since actual Excel/PDF parsing would require additional libraries
       // In a real implementation, you'd use libraries like xlsx or pdf-parse
@@ -132,6 +149,8 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
         { employee_name: 'John Doe', employee_email: 'john@company.com', interviews_scheduled: 5, offers_sent: 2, hires_made: 1, candidates_contacted: 10 },
         { employee_name: 'Jane Smith', employee_email: 'jane@company.com', interviews_scheduled: 3, offers_sent: 1, hires_made: 0, candidates_contacted: 8 }
       ];
+
+      console.log('Inserting mock data entries...');
 
       // Insert mock data into production_report_entries
       const { error: entriesError } = await supabase
@@ -150,8 +169,10 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
 
       if (entriesError) {
         console.error('Error inserting entries:', entriesError);
-        return;
+        throw entriesError;
       }
+
+      console.log('Entries inserted successfully');
 
       // Check for discrepancies with user activity logs
       await checkDiscrepancies(reportId, mockData);
@@ -168,7 +189,10 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
 
       if (updateError) {
         console.error('Error updating report status:', updateError);
+        throw updateError;
       }
+
+      console.log('Report processing completed successfully');
 
     } catch (error) {
       console.error('Error processing report:', error);
@@ -178,6 +202,8 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
         .from('production_reports')
         .update({ status: 'error' })
         .eq('id', reportId);
+        
+      toast.error('Error processing the uploaded report');
     }
   };
 
@@ -185,6 +211,8 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
     const today = new Date().toISOString().split('T')[0];
     
     try {
+      console.log('Checking for discrepancies...');
+      
       // Get today's activity logs
       const { data: activityLogsData, error: activityLogsError } = await supabase
         .from('activity_logs')
@@ -216,10 +244,13 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
       }
 
       // Combine activity logs with profiles
-      const activityLogs = activityLogsData.map(log => ({
-        ...log,
-        profiles: profilesData?.find(profile => profile.id === log.user_id) || null
-      }));
+      const activityLogs = activityLogsData.map(log => {
+        const profile = profilesData?.find(profile => profile.id === log.user_id);
+        return {
+          ...log,
+          profiles: profile || null
+        };
+      });
 
       const discrepancies = [];
 
@@ -257,6 +288,8 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
       }
 
       if (discrepancies.length > 0) {
+        console.log('Found discrepancies:', discrepancies);
+        
         const { error } = await supabase
           .from('activity_discrepancies')
           .insert(discrepancies);
@@ -272,6 +305,8 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
 
           toast.warning(`Found ${discrepancies.length} discrepancies that require management review`);
         }
+      } else {
+        console.log('No discrepancies found');
       }
     } catch (error) {
       console.error('Error checking discrepancies:', error);
