@@ -9,6 +9,62 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activity_discrepancies: {
+        Row: {
+          created_at: string
+          field_name: string
+          id: string
+          logged_value: number
+          manager_notes: string | null
+          report_date: string
+          report_id: string
+          reported_value: number
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          field_name: string
+          id?: string
+          logged_value: number
+          manager_notes?: string | null
+          report_date: string
+          report_id: string
+          reported_value: number
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          field_name?: string
+          id?: string
+          logged_value?: number
+          manager_notes?: string | null
+          report_date?: string
+          report_id?: string
+          reported_value?: number
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_discrepancies_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "production_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_logs: {
         Row: {
           candidates_contacted: number | null
@@ -78,6 +134,92 @@ export type Database = {
           priority?: string
           title?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      production_report_entries: {
+        Row: {
+          candidates_contacted: number | null
+          created_at: string
+          employee_email: string | null
+          employee_name: string
+          hires_made: number | null
+          id: string
+          interviews_scheduled: number | null
+          offers_sent: number | null
+          report_id: string
+          user_id: string | null
+        }
+        Insert: {
+          candidates_contacted?: number | null
+          created_at?: string
+          employee_email?: string | null
+          employee_name: string
+          hires_made?: number | null
+          id?: string
+          interviews_scheduled?: number | null
+          offers_sent?: number | null
+          report_id: string
+          user_id?: string | null
+        }
+        Update: {
+          candidates_contacted?: number | null
+          created_at?: string
+          employee_email?: string | null
+          employee_name?: string
+          hires_made?: number | null
+          id?: string
+          interviews_scheduled?: number | null
+          offers_sent?: number | null
+          report_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_report_entries_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "production_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_reports: {
+        Row: {
+          created_at: string
+          discrepancies_found: number | null
+          file_name: string
+          file_url: string
+          id: string
+          report_date: string
+          status: string | null
+          total_records: number | null
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          discrepancies_found?: number | null
+          file_name: string
+          file_url: string
+          id?: string
+          report_date: string
+          status?: string | null
+          total_records?: number | null
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          discrepancies_found?: number | null
+          file_name?: string
+          file_url?: string
+          id?: string
+          report_date?: string
+          status?: string | null
+          total_records?: number | null
+          updated_at?: string
+          uploaded_by?: string
         }
         Relationships: []
       }
