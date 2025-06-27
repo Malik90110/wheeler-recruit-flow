@@ -168,29 +168,54 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
         const headers = jsonData[headerRowIndex] as string[];
         console.log('Headers found:', headers);
 
-        // Map column indices
+        // Map column indices based on the correct Excel column names
         const recruiterNameIndex = headers.findIndex(h => 
           h && h.toLowerCase().includes('recruiter name')
         );
-        const captureCompleteIndex = headers.findIndex(h => 
-          h && h.toLowerCase().includes('capture complete')
+        
+        // Candidates contacted = "Capture: Capture Complete"
+        const candidatesContactedIndex = headers.findIndex(h => 
+          h && (h.toLowerCase().includes('capture complete') || h.toLowerCase().includes('capture: capture complete'))
         );
-        const interviewScheduledIndex = headers.findIndex(h => 
-          h && h.toLowerCase().includes('recruiter interview scheduled')
+        
+        // Interviews scheduled = "Recruiter Interview: Recruiter Interview Scheduled"
+        const interviewsScheduledIndex = headers.findIndex(h => 
+          h && (h.toLowerCase().includes('recruiter interview scheduled') || h.toLowerCase().includes('recruiter interview: recruiter interview scheduled'))
         );
-        const sendOfferIndex = headers.findIndex(h => 
-          h && h.toLowerCase().includes('send offer')
+        
+        // Interviews completed = "Recruiter Interview: Recruiter Interview Complete" + "Adhoc Interview: Adhoc interview"
+        const recruiterInterviewCompleteIndex = headers.findIndex(h => 
+          h && (h.toLowerCase().includes('recruiter interview complete') || h.toLowerCase().includes('recruiter interview: recruiter interview complete'))
         );
-        const offerAcceptedIndex = headers.findIndex(h => 
-          h && h.toLowerCase().includes('offer accepted')
+        
+        const adhocInterviewIndex = headers.findIndex(h => 
+          h && (h.toLowerCase().includes('adhoc interview') || h.toLowerCase().includes('adhoc interview: adhoc interview'))
+        );
+        
+        // Offers sent = "Extend Offer: Send Offer"
+        const offersSentIndex = headers.findIndex(h => 
+          h && (h.toLowerCase().includes('send offer') || h.toLowerCase().includes('extend offer: send offer'))
+        );
+        
+        // Hires made = "Candidate Sent to Oracle: Candidate Sent to Oracle"
+        const hiresMadeIndex = headers.findIndex(h => 
+          h && (h.toLowerCase().includes('candidate sent to oracle') || h.toLowerCase().includes('candidate sent to oracle: candidate sent to oracle'))
+        );
+        
+        // Onboarding = "Onboarding: Send Onboarding"
+        const onboardingIndex = headers.findIndex(h => 
+          h && (h.toLowerCase().includes('send onboarding') || h.toLowerCase().includes('onboarding: send onboarding'))
         );
 
         console.log('Column indices:', {
           recruiterNameIndex,
-          captureCompleteIndex,
-          interviewScheduledIndex,
-          sendOfferIndex,
-          offerAcceptedIndex
+          candidatesContactedIndex,
+          interviewsScheduledIndex,
+          recruiterInterviewCompleteIndex,
+          adhocInterviewIndex,
+          offersSentIndex,
+          hiresMadeIndex,
+          onboardingIndex
         });
 
         // Process data rows
@@ -208,13 +233,20 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
             return isNaN(value) ? 0 : value;
           };
 
+          // Calculate total interviews completed (recruiter interviews + adhoc interviews)
+          const recruiterInterviewsComplete = getNumericValue(recruiterInterviewCompleteIndex);
+          const adhocInterviews = getNumericValue(adhocInterviewIndex);
+          const totalInterviewsCompleted = recruiterInterviewsComplete + adhocInterviews;
+
           parsedData.push({
             employee_name: recruiterName.trim(),
             employee_email: `${recruiterName.toLowerCase().replace(/\s+/g, '.')}@company.com`,
-            interviews_scheduled: getNumericValue(interviewScheduledIndex),
-            offers_sent: getNumericValue(sendOfferIndex),
-            hires_made: getNumericValue(offerAcceptedIndex),
-            candidates_contacted: getNumericValue(captureCompleteIndex)
+            candidates_contacted: getNumericValue(candidatesContactedIndex),
+            interviews_scheduled: getNumericValue(interviewsScheduledIndex),
+            interviews_completed: totalInterviewsCompleted,
+            offers_sent: getNumericValue(offersSentIndex),
+            hires_made: getNumericValue(hiresMadeIndex),
+            onboarding_sent: getNumericValue(onboardingIndex)
           });
         }
 
@@ -242,10 +274,10 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
             report_id: reportId,
             employee_name: entry.employee_name,
             employee_email: entry.employee_email,
+            candidates_contacted: entry.candidates_contacted,
             interviews_scheduled: entry.interviews_scheduled,
             offers_sent: entry.offers_sent,
-            hires_made: entry.hires_made,
-            candidates_contacted: entry.candidates_contacted
+            hires_made: entry.hires_made
           }))
         );
 
