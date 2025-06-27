@@ -75,6 +75,7 @@ export type Database = {
           interviews_scheduled: number | null
           notes: string | null
           offers_sent: number | null
+          onboarding_sent: number | null
           updated_at: string
           user_id: string
         }
@@ -87,6 +88,7 @@ export type Database = {
           interviews_scheduled?: number | null
           notes?: string | null
           offers_sent?: number | null
+          onboarding_sent?: number | null
           updated_at?: string
           user_id: string
         }
@@ -99,6 +101,7 @@ export type Database = {
           interviews_scheduled?: number | null
           notes?: string | null
           offers_sent?: number | null
+          onboarding_sent?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -147,6 +150,7 @@ export type Database = {
           id: string
           interviews_scheduled: number | null
           offers_sent: number | null
+          onboarding_sent: number | null
           report_id: string
           user_id: string | null
         }
@@ -159,6 +163,7 @@ export type Database = {
           id?: string
           interviews_scheduled?: number | null
           offers_sent?: number | null
+          onboarding_sent?: number | null
           report_id: string
           user_id?: string | null
         }
@@ -171,6 +176,7 @@ export type Database = {
           id?: string
           interviews_scheduled?: number | null
           offers_sent?: number | null
+          onboarding_sent?: number | null
           report_id?: string
           user_id?: string | null
         }

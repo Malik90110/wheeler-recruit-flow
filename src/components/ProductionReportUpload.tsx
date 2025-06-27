@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Upload, FileSpreadsheet, FileText, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -277,7 +278,8 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
             candidates_contacted: entry.candidates_contacted,
             interviews_scheduled: entry.interviews_scheduled,
             offers_sent: entry.offers_sent,
-            hires_made: entry.hires_made
+            hires_made: entry.hires_made,
+            onboarding_sent: entry.onboarding_sent
           }))
         );
 
@@ -382,7 +384,8 @@ export const ProductionReportUpload = ({ onUploadComplete }: ProductionReportUpl
             { name: 'interviews_scheduled', reported: reportEntry.interviews_scheduled, logged: matchingLog.interviews_scheduled },
             { name: 'offers_sent', reported: reportEntry.offers_sent, logged: matchingLog.offers_sent },
             { name: 'hires_made', reported: reportEntry.hires_made, logged: matchingLog.hires_made },
-            { name: 'candidates_contacted', reported: reportEntry.candidates_contacted, logged: matchingLog.candidates_contacted }
+            { name: 'candidates_contacted', reported: reportEntry.candidates_contacted, logged: matchingLog.candidates_contacted },
+            { name: 'onboarding_sent', reported: reportEntry.onboarding_sent, logged: matchingLog.onboarding_sent }
           ];
 
           for (const field of fields) {

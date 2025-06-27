@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { TrendingUp, Users, Briefcase, UserCheck, Phone } from 'lucide-react';
+import { TrendingUp, Users, Briefcase, UserCheck, Phone, Send } from 'lucide-react';
 
 interface ComparisonData {
   field_name: string;
@@ -163,7 +164,8 @@ export const ComparisonChart = () => {
             { name: 'Interviews Scheduled', userField: 'interviews_scheduled', reportField: 'interviews_scheduled' },
             { name: 'Offers Sent', userField: 'offers_sent', reportField: 'offers_sent' },
             { name: 'Hires Made', userField: 'hires_made', reportField: 'hires_made' },
-            { name: 'Candidates Contacted', userField: 'candidates_contacted', reportField: 'candidates_contacted' }
+            { name: 'Candidates Contacted', userField: 'candidates_contacted', reportField: 'candidates_contacted' },
+            { name: 'Onboarding Sent', userField: 'onboarding_sent', reportField: 'onboarding_sent' }
           ];
 
           fields.forEach(field => {
@@ -189,7 +191,8 @@ export const ComparisonChart = () => {
             { name: 'Interviews Scheduled', userField: 'interviews_scheduled' },
             { name: 'Offers Sent', userField: 'offers_sent' },
             { name: 'Hires Made', userField: 'hires_made' },
-            { name: 'Candidates Contacted', userField: 'candidates_contacted' }
+            { name: 'Candidates Contacted', userField: 'candidates_contacted' },
+            { name: 'Onboarding Sent', userField: 'onboarding_sent' }
           ];
 
           fields.forEach(field => {
@@ -227,6 +230,8 @@ export const ComparisonChart = () => {
         return <UserCheck className="w-4 h-4" />;
       case 'Candidates Contacted':
         return <Phone className="w-4 h-4" />;
+      case 'Onboarding Sent':
+        return <Send className="w-4 h-4" />;
       default:
         return <TrendingUp className="w-4 h-4" />;
     }
@@ -329,7 +334,7 @@ export const ComparisonChart = () => {
       </ChartContainer>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
         {comparisonData.map((item, index) => (
           <div key={index} className="p-3 bg-gray-50 rounded-lg">
             <div className="flex items-center justify-between mb-2">
