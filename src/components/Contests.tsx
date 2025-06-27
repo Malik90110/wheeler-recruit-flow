@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Trophy, Clock, Users, Medal, Plus, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +8,7 @@ import { CreateContestDialog } from '@/components/contests/CreateContestDialog';
 import { ContestLeaderboard } from '@/components/contests/ContestLeaderboard';
 import { ContestManagement } from '@/components/contests/ContestManagement';
 import { useContests } from '@/hooks/useContests';
+import { useUserRoles } from '@/hooks/useUserRoles';
 
 interface ContestsProps {
   currentUser: string;
@@ -17,15 +17,14 @@ interface ContestsProps {
 export const Contests = ({ currentUser }: ContestsProps) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { contests, loading, startContest, pauseContest, endContest, refreshContests } = useContests();
-
-  // Mock user role - will come from Supabase auth/profiles
-  const isManager = currentUser === 'Sarah Johnson' || currentUser === 'Mike Chen';
+  const { isManager, loading: rolesLoading } = useUserRoles();
 
   console.log('Current user:', currentUser);
   console.log('Is manager:', isManager);
+  console.log('Roles loading:', rolesLoading);
   console.log('Contests:', contests);
 
-  if (loading) {
+  if (loading || rolesLoading) {
     return (
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="animate-pulse">
