@@ -38,11 +38,11 @@ export const useUserManagement = (isManager: boolean) => {
         const userSpecificRoles = userRoles?.filter(role => role.user_id === profile.id) || [];
         const roles = userSpecificRoles.map(role => role.role);
         
-        // Find auth user with proper type checking
+        // Find auth user email
         let email = 'No email';
-        if (authData?.users && Array.isArray(authData.users) && authData.users.length > 0) {
-          const authUser = authData.users.find((user: any) => user && user.id === profile.id);
-          if (authUser && authUser.email) {
+        if (authData?.users) {
+          const authUser = authData.users.find(user => user.id === profile.id);
+          if (authUser?.email) {
             email = authUser.email;
           }
         }
