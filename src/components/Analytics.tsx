@@ -1,15 +1,71 @@
+
 import React, { useState, useEffect } from 'react';
 import { BarChart, Users, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const Analytics = () => {
   const [timeFilter, setTimeFilter] = useState('monthly');
   const [recruiterFilter, setRecruiterFilter] = useState('all');
   const { data, loading } = useAnalytics(timeFilter, recruiterFilter);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [userMetrics, setUserMetrics] = useState({
+    totalInterviews: 0,
+    totalOffers: 0,
+    totalHires: 0,
+    totalOnboarding: 0
+  });
+  const { user } = useAuth();
+
+  const fetchUserMetrics = async () => {
+    if (!user) return;
+
+    try {
+      // Get all activity logs for the logged-in user (same as Dashboard and Activity Logger)
+      const { data: activityData, error } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching user metrics:', error);
+        return;
+      }
+
+      if (activityData && activityData.length > 0) {
+        // Calculate totals across all activity logs (same logic as Dashboard)
+        const totals = activityData.reduce((acc, log) => ({
+          totalInterviews: acc.totalInterviews + (log.interviews_scheduled || 0),
+          totalOffers: acc.totalOffers + (log.offers_sent || 0),
+          totalHires: acc.totalHires + (log.hires_made || 0),
+          totalOnboarding: acc.totalOnboarding + (log.onboarding_sent || 0)
+        }), {
+          totalInterviews: 0,
+          totalOffers: 0,
+          totalHires: 0,
+          totalOnboarding: 0
+        });
+
+        setUserMetrics(totals);
+      } else {
+        // No data available, reset to zero
+        setUserMetrics({
+          totalInterviews: 0,
+          totalOffers: 0,
+          totalHires: 0,
+          totalOnboarding: 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user metrics:', error);
+    }
+  };
 
   useEffect(() => {
+    fetchUserMetrics();
+
     // Set up real-time subscription for analytics
     const channel = supabase
       .channel('analytics-updates')
@@ -18,10 +74,13 @@ export const Analytics = () => {
         {
           event: '*',
           schema: 'public',
-          table: 'activity_logs'
+          table: 'activity_logs',
+          filter: `user_id=eq.${user?.id}`
         },
         () => {
-          // Trigger a refresh of the analytics data
+          console.log('Activity log changed, refreshing analytics metrics');
+          // Trigger a refresh of both user metrics and analytics data
+          fetchUserMetrics();
           setRefreshTrigger(prev => prev + 1);
         }
       )
@@ -30,7 +89,7 @@ export const Analytics = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]);
 
   // Pass refreshTrigger to useAnalytics hook to force refresh
   const { data: realTimeData, loading: realTimeLoading } = useAnalytics(timeFilter, recruiterFilter, refreshTrigger);
@@ -57,12 +116,15 @@ export const Analytics = () => {
     );
   }
 
+  const successRate = userMetrics.totalInterviews > 0 ? 
+    Number(((userMetrics.totalHires / userMetrics.totalInterviews) * 100).toFixed(1)) : 0;
+
   return (
     <div className="max-w-6xl space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Performance Analytics</h1>
-          <p className="text-gray-600 mt-1">Team performance insights and trends</p>
+          <p className="text-gray-600 mt-1">Your performance insights and team trends</p>
         </div>
         
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mt-4 lg:mt-0">
@@ -103,7 +165,7 @@ export const Analytics = () => {
               <span className="text-sm font-medium">+12%</span>
             </div>
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mt-4">{realTimeData.totalInterviews.toLocaleString()}</h3>
+          <h3 className="text-2xl font-bold text-gray-900 mt-4">{userMetrics.totalInterviews.toLocaleString()}</h3>
           <p className="text-gray-600 text-sm">Total Interviews</p>
         </div>
 
@@ -117,7 +179,7 @@ export const Analytics = () => {
               <span className="text-sm font-medium">+18%</span>
             </div>
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mt-4">{realTimeData.totalOffers.toLocaleString()}</h3>
+          <h3 className="text-2xl font-bold text-gray-900 mt-4">{userMetrics.totalOffers.toLocaleString()}</h3>
           <p className="text-gray-600 text-sm">Offers Sent</p>
         </div>
 
@@ -131,7 +193,7 @@ export const Analytics = () => {
               <span className="text-sm font-medium">+25%</span>
             </div>
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mt-4">{realTimeData.totalHires.toLocaleString()}</h3>
+          <h3 className="text-2xl font-bold text-gray-900 mt-4">{userMetrics.totalHires.toLocaleString()}</h3>
           <p className="text-gray-600 text-sm">Successful Hires</p>
         </div>
 
@@ -145,7 +207,7 @@ export const Analytics = () => {
               <span className="text-sm font-medium">-2%</span>
             </div>
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mt-4">{realTimeData.successRate}%</h3>
+          <h3 className="text-2xl font-bold text-gray-900 mt-4">{successRate}%</h3>
           <p className="text-gray-600 text-sm">Success Rate</p>
         </div>
       </div>
