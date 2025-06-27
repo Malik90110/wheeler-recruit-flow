@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -29,9 +28,17 @@ export const useUserManagement = (isManager: boolean) => {
 
       if (rolesError) throw rolesError;
 
-      // Fetch auth users to get emails
-      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
-      
+      // Try to get auth users, but handle the case where it might fail
+      let authUsers: any[] = [];
+      try {
+        const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+        if (!authError && authData?.users) {
+          authUsers = authData.users;
+        }
+      } catch (error) {
+        console.log('Could not fetch auth users:', error);
+      }
+
       // Combine the data with proper type checking
       const usersWithRoles = profiles?.map(profile => {
         // Filter roles for this specific user
@@ -40,8 +47,8 @@ export const useUserManagement = (isManager: boolean) => {
         
         // Find auth user email
         let email = 'No email';
-        if (authData?.users) {
-          const authUser = authData.users.find(user => user.id === profile.id);
+        if (authUsers.length > 0) {
+          const authUser = authUsers.find(user => user?.id === profile.id);
           if (authUser?.email) {
             email = authUser.email;
           }

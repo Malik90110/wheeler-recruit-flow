@@ -331,10 +331,29 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     console.log("Starting daily report generation...");
     
+    const body = await req.json().catch(() => ({}));
+    const displayOnly = body.displayOnly || false;
+    
     // Generate the report data
     const reportData = await generateDailyReport();
     
-    // Send to managers
+    // If displayOnly is true, just return the data without sending emails
+    if (displayOnly) {
+      console.log("Display-only mode: returning report data without sending emails");
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "Report data generated successfully",
+          reportData 
+        }), 
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+    
+    // Send to managers (original functionality)
     await sendReportToManagers(reportData);
     
     console.log("Daily report completed successfully");

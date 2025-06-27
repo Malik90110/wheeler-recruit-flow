@@ -3,7 +3,7 @@ import React from 'react';
 import { useUserRoles } from '@/hooks/useUserRoles';
 import { Badge } from '@/components/ui/badge';
 import { Users } from 'lucide-react';
-import { DailyReportTrigger } from './DailyReportTrigger';
+import { DailyReportDisplay } from './DailyReportDisplay';
 import { AccessRestricted } from './user-management/AccessRestricted';
 import { LoadingState } from './user-management/LoadingState';
 import { UserList } from './user-management/UserList';
@@ -34,10 +34,8 @@ export const UserManagement = () => {
         </Badge>
       </div>
 
-      {/* Daily Report Trigger */}
-      <div className="flex justify-center">
-        <DailyReportTrigger />
-      </div>
+      {/* Daily Report Display */}
+      <DailyReportDisplay />
 
       <UserList
         users={users}
