@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Users, Calendar, MessageSquare, ArrowUp, Package } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,22 +30,21 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
     if (!user) return;
 
     try {
-      // Get today's data for the logged-in user
-      const today = new Date().toISOString().split('T')[0];
-
-      const { data: todayData, error } = await supabase
+      // Get all activity logs for the logged-in user (same as Activity Logger chart)
+      const { data: activityData, error } = await supabase
         .from('activity_logs')
         .select('*')
         .eq('user_id', user.id)
-        .eq('date', today);
+        .order('date', { ascending: false });
 
       if (error) {
         console.error('Error fetching metrics:', error);
         return;
       }
 
-      if (todayData && todayData.length > 0) {
-        const totals = todayData.reduce((acc, log) => ({
+      if (activityData && activityData.length > 0) {
+        // Calculate totals across all activity logs (same logic as Activity Logger)
+        const totals = activityData.reduce((acc, log) => ({
           interviewsScheduled: acc.interviewsScheduled + (log.interviews_scheduled || 0),
           offersSent: acc.offersSent + (log.offers_sent || 0),
           hiresMade: acc.hiresMade + (log.hires_made || 0),
@@ -62,7 +60,7 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
 
         setMetrics(totals);
       } else {
-        // No data for today, reset to zero
+        // No data available, reset to zero
         setMetrics({
           interviewsScheduled: 0,
           offersSent: 0,
@@ -81,17 +79,19 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
   useEffect(() => {
     fetchMetrics();
 
-    // Set up real-time subscription
+    // Set up real-time subscription for activity_logs changes
     const channel = supabase
-      .channel('activity-changes')
+      .channel('dashboard-activity-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'activity_logs'
+          table: 'activity_logs',
+          filter: `user_id=eq.${user?.id}`
         },
         () => {
+          console.log('Activity log changed, refreshing dashboard metrics');
           fetchMetrics();
         }
       )
@@ -146,10 +146,10 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Welcome back, {currentUser}</h1>
-          <p className="text-gray-600 mt-1">Here's your recruiting performance overview for today</p>
+          <p className="text-gray-600 mt-1">Here's your recruiting performance overview</p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-gray-500">Today</p>
+          <p className="text-sm text-gray-500">Total Activity</p>
           <p className="text-lg font-semibold text-gray-900">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
         </div>
       </div>
