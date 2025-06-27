@@ -26,16 +26,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('AuthProvider: Clearing any existing sessions and setting up auth');
+    console.log('AuthProvider: Setting up auth with sessionStorage');
     
-    // Clear any existing session on app start to force fresh login
-    const clearExistingSession = async () => {
-      await supabase.auth.signOut();
-      setSession(null);
-      setUser(null);
-      setLoading(false);
-    };
-
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -46,8 +38,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // Clear existing session first
-    clearExistingSession();
+    // Check for existing session (will only exist in current tab/window now)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.email || 'no session');
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
     return () => {
       console.log('AuthProvider: Cleaning up auth listener');
