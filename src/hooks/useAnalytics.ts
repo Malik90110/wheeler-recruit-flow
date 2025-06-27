@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -22,7 +21,7 @@ export interface AnalyticsData {
   }>;
 }
 
-export const useAnalytics = (timeFilter: string, recruiterFilter: string) => {
+export const useAnalytics = (timeFilter: string, recruiterFilter: string, refreshTrigger?: number) => {
   const [data, setData] = useState<AnalyticsData>({
     totalInterviews: 0,
     totalOffers: 0,
@@ -218,7 +217,7 @@ export const useAnalytics = (timeFilter: string, recruiterFilter: string) => {
     };
 
     fetchAnalyticsData();
-  }, [timeFilter, recruiterFilter]);
+  }, [timeFilter, recruiterFilter, refreshTrigger]);
 
   return { data, loading };
 };

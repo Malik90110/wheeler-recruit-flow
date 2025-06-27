@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Users, Calendar, MessageSquare, ArrowUp, Package } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,26 +31,22 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
     if (!user) return;
 
     try {
-      // Get current week's data for the logged-in user
-      const startOfWeek = new Date();
-      startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(endOfWeek.getDate() + 6);
+      // Get today's data for the logged-in user
+      const today = new Date().toISOString().split('T')[0];
 
-      const { data: weeklyData, error } = await supabase
+      const { data: todayData, error } = await supabase
         .from('activity_logs')
         .select('*')
         .eq('user_id', user.id)
-        .gte('date', startOfWeek.toISOString().split('T')[0])
-        .lte('date', endOfWeek.toISOString().split('T')[0]);
+        .eq('date', today);
 
       if (error) {
         console.error('Error fetching metrics:', error);
         return;
       }
 
-      if (weeklyData) {
-        const totals = weeklyData.reduce((acc, log) => ({
+      if (todayData && todayData.length > 0) {
+        const totals = todayData.reduce((acc, log) => ({
           interviewsScheduled: acc.interviewsScheduled + (log.interviews_scheduled || 0),
           offersSent: acc.offersSent + (log.offers_sent || 0),
           hiresMade: acc.hiresMade + (log.hires_made || 0),
@@ -64,6 +61,15 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
         });
 
         setMetrics(totals);
+      } else {
+        // No data for today, reset to zero
+        setMetrics({
+          interviewsScheduled: 0,
+          offersSent: 0,
+          hiresMade: 0,
+          onboardingSent: 0,
+          totalActivities: 0
+        });
       }
     } catch (error) {
       console.error('Error fetching metrics:', error);
@@ -140,11 +146,11 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Welcome back, {currentUser}</h1>
-          <p className="text-gray-600 mt-1">Here's your recruiting performance overview</p>
+          <p className="text-gray-600 mt-1">Here's your recruiting performance overview for today</p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-gray-500">Current Week</p>
-          <p className="text-lg font-semibold text-gray-900">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+          <p className="text-sm text-gray-500">Today</p>
+          <p className="text-lg font-semibold text-gray-900">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
         </div>
       </div>
 
