@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { Calendar, TrendingUp, Users, Award, Target } from 'lucide-react';
 
 interface DailyReportData {
@@ -27,12 +28,19 @@ interface DailyReportData {
     candidates_contacted: number;
   }>;
   reportDate: string;
+  userPersonalData?: {
+    interviews: number;
+    offers: number;
+    hires: number;
+    onboarding: number;
+  };
 }
 
 export const DailyReportDisplay = () => {
   const [reportData, setReportData] = useState<DailyReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const fetchDailyReport = async () => {
     try {
@@ -45,10 +53,20 @@ export const DailyReportDisplay = () => {
       if (error) throw error;
 
       if (data?.reportData) {
-        setReportData({
+        let updatedReportData = {
           ...data.reportData,
           reportDate: new Date().toLocaleDateString()
-        });
+        };
+
+        // If user is logged in, get their personal data with improved matching
+        if (user) {
+          const personalData = await fetchUserPersonalData();
+          if (personalData) {
+            updatedReportData.userPersonalData = personalData;
+          }
+        }
+
+        setReportData(updatedReportData);
       }
     } catch (error: any) {
       console.error('Error fetching daily report:', error);
@@ -62,9 +80,119 @@ export const DailyReportDisplay = () => {
     }
   };
 
+  const fetchUserPersonalData = async () => {
+    if (!user) return null;
+
+    try {
+      console.log('DailyReport: Fetching personal data for user:', user.id);
+      
+      // Get user profile first
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile) return null;
+
+      const fullName = `${profile.first_name} ${profile.last_name}`;
+      console.log('DailyReport: User full name:', fullName);
+
+      // Check for recent production data
+      const { data: latestReport } = await supabase
+        .from('production_reports')
+        .select('id, report_date')
+        .order('report_date', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (latestReport) {
+        const reportDate = new Date(latestReport.report_date);
+        const today = new Date();
+        const diffTime = Math.abs(today.getTime() - reportDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays <= 1) {
+          // Get all production entries for flexible matching
+          const { data: allEntries } = await supabase
+            .from('production_report_entries')
+            .select('*')
+            .eq('report_id', latestReport.id);
+
+          if (allEntries && allEntries.length > 0) {
+            let productionEntry = null;
+            
+            // Try exact match first
+            productionEntry = allEntries.find(entry => 
+              entry.employee_name.toLowerCase() === fullName.toLowerCase()
+            );
+            
+            // If no exact match, try partial matches
+            if (!productionEntry) {
+              const firstName = profile.first_name.toLowerCase();
+              const lastName = profile.last_name.toLowerCase();
+              
+              productionEntry = allEntries.find(entry => {
+                const entryName = entry.employee_name.toLowerCase();
+                return entryName.includes(firstName) && entryName.includes(lastName);
+              });
+            }
+            
+            // If still no match, try email matching
+            if (!productionEntry) {
+              const userEmail = user.email?.toLowerCase() || '';
+              productionEntry = allEntries.find(entry => {
+                const entryEmail = entry.employee_email?.toLowerCase() || '';
+                return entryEmail === userEmail;
+              });
+            }
+
+            if (productionEntry) {
+              console.log('DailyReport: Found production entry:', productionEntry);
+              return {
+                interviews: productionEntry.interviews_scheduled || 0,
+                offers: productionEntry.offers_sent || 0,
+                hires: productionEntry.hires_made || 0,
+                onboarding: productionEntry.onboarding_sent || 0
+              };
+            }
+          }
+        }
+      }
+
+      // Fall back to activity logs
+      const { data: activityData } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
+
+      if (activityData && activityData.length > 0) {
+        const totals = activityData.reduce((acc, log) => ({
+          interviews: acc.interviews + (log.interviews_scheduled || 0),
+          offers: acc.offers + (log.offers_sent || 0),
+          hires: acc.hires + (log.hires_made || 0),
+          onboarding: acc.onboarding + (log.onboarding_sent || 0)
+        }), {
+          interviews: 0,
+          offers: 0,
+          hires: 0,
+          onboarding: 0
+        });
+
+        return totals;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error fetching user personal data:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     fetchDailyReport();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (
@@ -111,6 +239,31 @@ export const DailyReportDisplay = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Personal Data Section (if user is logged in) */}
+          {reportData.userPersonalData && (
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <h3 className="text-lg font-semibold mb-3 text-blue-900">Your Personal Data</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="text-center">
+                  <div className="text-xl font-bold text-blue-600">{reportData.userPersonalData.interviews}</div>
+                  <div className="text-sm text-blue-700">Interviews</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-green-600">{reportData.userPersonalData.offers}</div>
+                  <div className="text-sm text-green-700">Offers</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-purple-600">{reportData.userPersonalData.hires}</div>
+                  <div className="text-sm text-purple-700">Hires</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-orange-600">{reportData.userPersonalData.onboarding}</div>
+                  <div className="text-sm text-orange-700">Onboarding</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Key Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
