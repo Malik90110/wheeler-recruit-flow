@@ -18,15 +18,21 @@ const Index = () => {
   const { user, session, loading, signOut } = useAuth();
   const navigate = useNavigate();
 
+  // Redirect to auth if not authenticated
   useEffect(() => {
+    console.log('Index: Checking auth state', { loading, session: !!session, user: user?.email });
+    
     if (!loading && !session) {
+      console.log('Index: No session found, redirecting to auth');
       navigate('/auth');
     }
   }, [session, loading, navigate]);
 
+  // Fetch user profile when authenticated
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user) {
+        console.log('Index: Fetching profile for user:', user.email);
         const { data: profile } = await supabase
           .from('profiles')
           .select('first_name, last_name')
@@ -35,6 +41,9 @@ const Index = () => {
         
         if (profile) {
           setCurrentUser(`${profile.first_name} ${profile.last_name}`);
+        } else {
+          // Fallback to email if no profile
+          setCurrentUser(user.email || 'User');
         }
       }
     };
@@ -45,6 +54,7 @@ const Index = () => {
   }, [user]);
 
   const handleSignOut = async () => {
+    console.log('Index: User signing out');
     await signOut();
     navigate('/auth');
   };
@@ -60,8 +70,9 @@ const Index = () => {
     );
   }
 
+  // Show nothing while redirecting to auth
   if (!session) {
-    return null; // Will redirect to auth
+    return null;
   }
 
   const renderContent = () => {
