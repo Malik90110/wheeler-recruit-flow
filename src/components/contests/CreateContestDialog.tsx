@@ -12,15 +12,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CalendarIcon } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CreateContestDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentUser: string;
+  onContestCreated: () => void;
 }
 
-export const CreateContestDialog = ({ open, onOpenChange, currentUser }: CreateContestDialogProps) => {
+export const CreateContestDialog = ({ open, onOpenChange, onContestCreated }: CreateContestDialogProps) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -30,13 +32,14 @@ export const CreateContestDialog = ({ open, onOpenChange, currentUser }: CreateC
     prize: '',
     targetMetrics: [] as string[]
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const availableMetrics = [
-    { id: 'interviews', label: 'Interviews Conducted' },
-    { id: 'offers', label: 'Offers Sent' },
-    { id: 'hires', label: 'Successful Hires' },
-    { id: 'calls', label: 'Client Calls' },
-    { id: 'candidates', label: 'New Candidates' }
+    { id: 'interviews_scheduled', label: 'Interviews Scheduled' },
+    { id: 'offers_sent', label: 'Offers Sent' },
+    { id: 'hires_made', label: 'Successful Hires' },
+    { id: 'candidates_contacted', label: 'Candidates Contacted' },
+    { id: 'onboarding_sent', label: 'Onboarding Sent' }
   ];
 
   const handleMetricChange = (metricId: string, checked: boolean) => {
@@ -48,20 +51,52 @@ export const CreateContestDialog = ({ open, onOpenChange, currentUser }: CreateC
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Contest created:', { ...formData, createdBy: currentUser });
-    // In real app, this would save to Supabase
-    onOpenChange(false);
-    setFormData({
-      title: '',
-      description: '',
-      rules: '',
-      startDate: '',
-      endDate: '',
-      prize: '',
-      targetMetrics: []
-    });
+    if (!user) return;
+
+    setIsSubmitting(true);
+    
+    try {
+      const rulesArray = formData.rules.split('\n').filter(rule => rule.trim() !== '');
+      
+      const { error } = await supabase
+        .from('contests')
+        .insert({
+          title: formData.title,
+          description: formData.description,
+          rules: rulesArray,
+          start_date: formData.startDate,
+          end_date: formData.endDate,
+          prize: formData.prize,
+          target_metrics: formData.targetMetrics,
+          created_by: user.id,
+          status: 'upcoming'
+        });
+
+      if (error) {
+        console.error('Error creating contest:', error);
+        return;
+      }
+
+      // Reset form and close dialog
+      setFormData({
+        title: '',
+        description: '',
+        rules: '',
+        startDate: '',
+        endDate: '',
+        prize: '',
+        targetMetrics: []
+      });
+      
+      onContestCreated();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error creating contest:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -167,8 +202,8 @@ export const CreateContestDialog = ({ open, onOpenChange, currentUser }: CreateC
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">
-              Create Contest
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Creating...' : 'Create Contest'}
             </Button>
           </div>
         </form>

@@ -16,7 +16,7 @@ interface ContestsProps {
 
 export const Contests = ({ currentUser }: ContestsProps) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const { contests, loading, startContest, pauseContest, endContest } = useContests();
+  const { contests, loading, startContest, pauseContest, endContest, refreshContests } = useContests();
 
   // Mock user role - will come from Supabase auth/profiles
   const isManager = currentUser === 'Sarah Johnson' || currentUser === 'Mike Chen';
@@ -47,6 +47,47 @@ export const Contests = ({ currentUser }: ContestsProps) => {
   const completedContests = contests.filter(c => c.status === 'completed');
   const pausedContests = contests.filter(c => c.status === 'paused');
 
+  const handleContestCreated = () => {
+    refreshContests();
+  };
+
+  const renderContestList = (contestList: typeof contests, showManagement = true) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {contestList.map((contest) => (
+        <div key={contest.id} className="space-y-4">
+          <ContestCard contest={contest} currentUser={currentUser} />
+          {showManagement && isManager && (
+            <ContestManagement
+              contest={contest}
+              onStart={startContest}
+              onPause={pauseContest}
+              onEnd={endContest}
+              isManager={isManager}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderEmptyState = (icon: React.ReactNode, title: string, description: string, showCreateButton = false) => (
+    <Card>
+      <CardContent className="text-center py-12">
+        {icon}
+        <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
+        <p className="text-gray-500">{description}</p>
+        {showCreateButton && isManager && (
+          <Button 
+            onClick={() => setShowCreateDialog(true)}
+            className="mt-4"
+          >
+            Create Contest
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -66,6 +107,7 @@ export const Contests = ({ currentUser }: ContestsProps) => {
         )}
       </div>
 
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -110,6 +152,7 @@ export const Contests = ({ currentUser }: ContestsProps) => {
         </Card>
       </div>
 
+      {/* Contest Tabs */}
       <Tabs defaultValue="active" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="active" className="flex items-center space-x-2">
@@ -132,108 +175,50 @@ export const Contests = ({ currentUser }: ContestsProps) => {
 
         <TabsContent value="active" className="space-y-6">
           {activeContests.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {activeContests.map((contest) => (
-                <div key={contest.id} className="space-y-4">
-                  <ContestCard contest={contest} currentUser={currentUser} />
-                  <ContestManagement
-                    contest={contest}
-                    onStart={startContest}
-                    onPause={pauseContest}
-                    onEnd={endContest}
-                    isManager={isManager}
-                  />
-                </div>
-              ))}
-            </div>
+            renderContestList(activeContests)
           ) : (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Trophy className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Contests</h3>
-                <p className="text-gray-500">Create your first contest to get started!</p>
-                {isManager && (
-                  <Button 
-                    onClick={() => setShowCreateDialog(true)}
-                    className="mt-4"
-                  >
-                    Create Contest
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+            renderEmptyState(
+              <Trophy className="w-12 h-12 text-gray-400 mx-auto mb-4" />,
+              "No Active Contests",
+              "Create your first contest to get started!",
+              true
+            )
           )}
         </TabsContent>
 
         <TabsContent value="upcoming" className="space-y-6">
           {upcomingContests.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {upcomingContests.map((contest) => (
-                <div key={contest.id} className="space-y-4">
-                  <ContestCard contest={contest} currentUser={currentUser} />
-                  <ContestManagement
-                    contest={contest}
-                    onStart={startContest}
-                    onPause={pauseContest}
-                    onEnd={endContest}
-                    isManager={isManager}
-                  />
-                </div>
-              ))}
-            </div>
+            renderContestList(upcomingContests)
           ) : (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Upcoming Contests</h3>
-                <p className="text-gray-500">Stay tuned for new challenges!</p>
-              </CardContent>
-            </Card>
+            renderEmptyState(
+              <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />,
+              "No Upcoming Contests",
+              "Stay tuned for new challenges!"
+            )
           )}
         </TabsContent>
 
         <TabsContent value="paused" className="space-y-6">
           {pausedContests.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {pausedContests.map((contest) => (
-                <div key={contest.id} className="space-y-4">
-                  <ContestCard contest={contest} currentUser={currentUser} />
-                  <ContestManagement
-                    contest={contest}
-                    onStart={startContest}
-                    onPause={pauseContest}
-                    onEnd={endContest}
-                    isManager={isManager}
-                  />
-                </div>
-              ))}
-            </div>
+            renderContestList(pausedContests)
           ) : (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Medal className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Paused Contests</h3>
-                <p className="text-gray-500">Contests that are paused will appear here.</p>
-              </CardContent>
-            </Card>
+            renderEmptyState(
+              <Medal className="w-12 h-12 text-gray-400 mx-auto mb-4" />,
+              "No Paused Contests",
+              "Contests that are paused will appear here."
+            )
           )}
         </TabsContent>
 
         <TabsContent value="completed" className="space-y-6">
           {completedContests.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {completedContests.map((contest) => (
-                <ContestCard key={contest.id} contest={contest} currentUser={currentUser} />
-              ))}
-            </div>
+            renderContestList(completedContests, false)
           ) : (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Medal className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Completed Contests</h3>
-                <p className="text-gray-500">Completed contests will appear here.</p>
-              </CardContent>
-            </Card>
+            renderEmptyState(
+              <Medal className="w-12 h-12 text-gray-400 mx-auto mb-4" />,
+              "No Completed Contests",
+              "Completed contests will appear here."
+            )
           )}
         </TabsContent>
       </Tabs>
@@ -241,7 +226,7 @@ export const Contests = ({ currentUser }: ContestsProps) => {
       <CreateContestDialog 
         open={showCreateDialog} 
         onOpenChange={setShowCreateDialog}
-        currentUser={currentUser}
+        onContestCreated={handleContestCreated}
       />
     </div>
   );
