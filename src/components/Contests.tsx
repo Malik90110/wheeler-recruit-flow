@@ -52,18 +52,20 @@ export const Contests = ({ currentUser }: ContestsProps) => {
   };
 
   const renderContestList = (contestList: typeof contests, showManagement = true) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="space-y-6">
       {contestList.map((contest) => (
         <div key={contest.id} className="space-y-4">
           <ContestCard contest={contest} currentUser={currentUser} />
           {showManagement && isManager && (
-            <ContestManagement
-              contest={contest}
-              onStart={startContest}
-              onPause={pauseContest}
-              onEnd={endContest}
-              isManager={isManager}
-            />
+            <div className="flex justify-end">
+              <ContestManagement
+                contest={contest}
+                onStart={startContest}
+                onPause={pauseContest}
+                onEnd={endContest}
+                isManager={isManager}
+              />
+            </div>
           )}
         </div>
       ))}
