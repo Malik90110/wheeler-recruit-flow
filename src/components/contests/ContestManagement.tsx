@@ -38,7 +38,12 @@ export const ContestManagement = ({
   onEnd, 
   isManager 
 }: ContestManagementProps) => {
-  if (!isManager) return null;
+  console.log('ContestManagement rendering for:', contest.title, 'Status:', contest.status, 'IsManager:', isManager);
+
+  if (!isManager) {
+    console.log('Not showing buttons - user is not manager');
+    return null;
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -51,6 +56,7 @@ export const ContestManagement = ({
   };
 
   const handleStart = async () => {
+    console.log('Starting contest:', contest.id);
     const success = await onStart(contest.id);
     if (success) {
       console.log(`Contest ${contest.title} started successfully`);
@@ -58,6 +64,7 @@ export const ContestManagement = ({
   };
 
   const handlePause = async () => {
+    console.log('Pausing contest:', contest.id);
     const success = await onPause(contest.id);
     if (success) {
       console.log(`Contest ${contest.title} paused successfully`);
@@ -65,6 +72,7 @@ export const ContestManagement = ({
   };
 
   const handleEnd = async () => {
+    console.log('Ending contest:', contest.id);
     const success = await onEnd(contest.id);
     if (success) {
       console.log(`Contest ${contest.title} ended successfully`);
@@ -72,83 +80,85 @@ export const ContestManagement = ({
   };
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className="flex items-center space-x-3 p-3 bg-white rounded-lg border">
       <Badge className={getStatusColor(contest.status)}>
         <Clock className="w-3 h-3 mr-1" />
         {contest.status.charAt(0).toUpperCase() + contest.status.slice(1)}
       </Badge>
 
-      {contest.status === 'upcoming' && (
-        <Button size="sm" onClick={handleStart} className="flex items-center space-x-1">
-          <Play className="w-3 h-3" />
-          <span>Start</span>
-        </Button>
-      )}
-
-      {contest.status === 'active' && (
-        <>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={handlePause}
-            className="flex items-center space-x-1"
-          >
-            <Pause className="w-3 h-3" />
-            <span>Pause</span>
-          </Button>
-          
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button size="sm" variant="destructive" className="flex items-center space-x-1">
-                <Square className="w-3 h-3" />
-                <span>End</span>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>End Contest</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to end "{contest.title}"? This action cannot be undone and the contest will be marked as completed.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleEnd}>End Contest</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </>
-      )}
-
-      {contest.status === 'paused' && (
-        <>
+      <div className="flex space-x-2">
+        {contest.status === 'upcoming' && (
           <Button size="sm" onClick={handleStart} className="flex items-center space-x-1">
             <Play className="w-3 h-3" />
-            <span>Resume</span>
+            <span>Start Now</span>
           </Button>
-          
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button size="sm" variant="destructive" className="flex items-center space-x-1">
-                <Square className="w-3 h-3" />
-                <span>End</span>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>End Contest</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to end "{contest.title}"? This action cannot be undone and the contest will be marked as completed.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleEnd}>End Contest</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </>
-      )}
+        )}
+
+        {contest.status === 'active' && (
+          <>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={handlePause}
+              className="flex items-center space-x-1"
+            >
+              <Pause className="w-3 h-3" />
+              <span>Pause</span>
+            </Button>
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="destructive" className="flex items-center space-x-1">
+                  <Square className="w-3 h-3" />
+                  <span>End Contest</span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>End Contest</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to end "{contest.title}"? This action cannot be undone and the contest will be marked as completed.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleEnd}>End Contest</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
+        )}
+
+        {contest.status === 'paused' && (
+          <>
+            <Button size="sm" onClick={handleStart} className="flex items-center space-x-1">
+              <Play className="w-3 h-3" />
+              <span>Resume</span>
+            </Button>
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="destructive" className="flex items-center space-x-1">
+                  <Square className="w-3 h-3" />
+                  <span>End Contest</span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>End Contest</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to end "{contest.title}"? This action cannot be undone and the contest will be marked as completed.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleEnd}>End Contest</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
+        )}
+      </div>
     </div>
   );
 };

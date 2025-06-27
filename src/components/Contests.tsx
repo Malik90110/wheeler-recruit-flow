@@ -21,6 +21,10 @@ export const Contests = ({ currentUser }: ContestsProps) => {
   // Mock user role - will come from Supabase auth/profiles
   const isManager = currentUser === 'Sarah Johnson' || currentUser === 'Mike Chen';
 
+  console.log('Current user:', currentUser);
+  console.log('Is manager:', isManager);
+  console.log('Contests:', contests);
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto space-y-6">
@@ -57,7 +61,8 @@ export const Contests = ({ currentUser }: ContestsProps) => {
         <div key={contest.id} className="space-y-4">
           <ContestCard contest={contest} currentUser={currentUser} />
           {showManagement && isManager && (
-            <div className="flex justify-end">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-medium mb-3">Contest Management</h4>
               <ContestManagement
                 contest={contest}
                 onStart={startContest}
@@ -101,12 +106,19 @@ export const Contests = ({ currentUser }: ContestsProps) => {
           </div>
         </div>
         
-        {isManager && (
-          <Button onClick={() => setShowCreateDialog(true)} className="flex items-center space-x-2">
-            <Plus className="w-4 h-4" />
-            <span>Create Contest</span>
-          </Button>
-        )}
+        <div className="flex items-center space-x-4">
+          <div className="text-sm text-gray-600">
+            User: {currentUser} | Manager: {isManager ? 'Yes' : 'No'}
+          </div>
+          {isManager ? (
+            <Button onClick={() => setShowCreateDialog(true)} className="flex items-center space-x-2">
+              <Plus className="w-4 h-4" />
+              <span>Create Contest</span>
+            </Button>
+          ) : (
+            <div className="text-sm text-gray-500">Manager access required</div>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards */}
