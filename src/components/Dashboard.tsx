@@ -13,6 +13,7 @@ interface ActivityMetrics {
   hiresMade: number;
   onboardingSent: number;
   totalActivities: number;
+  dataSource: 'production' | 'activity_logs';
 }
 
 export const Dashboard = ({ currentUser }: DashboardProps) => {
@@ -21,7 +22,8 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
     offersSent: 0,
     hiresMade: 0,
     onboardingSent: 0,
-    totalActivities: 0
+    totalActivities: 0,
+    dataSource: 'activity_logs'
   });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -30,7 +32,65 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
     if (!user) return;
 
     try {
-      // Use the same query pattern as daily report for consistency
+      // First check if there's recent production data for this user
+      const { data: latestReport, error: reportError } = await supabase
+        .from('production_reports')
+        .select('id, report_date')
+        .order('report_date', { ascending: false })
+        .limit(1)
+        .single();
+
+      let useProductionData = false;
+      let reportId = null;
+
+      if (!reportError && latestReport) {
+        const reportDate = new Date(latestReport.report_date);
+        const today = new Date();
+        const diffTime = Math.abs(today.getTime() - reportDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays <= 1) {
+          useProductionData = true;
+          reportId = latestReport.id;
+        }
+      }
+
+      if (useProductionData && reportId) {
+        // Get user's profile to match with production data
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          const fullName = `${profile.first_name} ${profile.last_name}`;
+          
+          // Get production data for this user
+          const { data: productionEntry, error: entryError } = await supabase
+            .from('production_report_entries')
+            .select('*')
+            .eq('report_id', reportId)
+            .eq('employee_name', fullName)
+            .single();
+
+          if (!entryError && productionEntry) {
+            console.log('Dashboard using production data for:', fullName, productionEntry);
+            setMetrics({
+              interviewsScheduled: productionEntry.interviews_scheduled || 0,
+              offersSent: productionEntry.offers_sent || 0,
+              hiresMade: productionEntry.hires_made || 0,
+              onboardingSent: productionEntry.onboarding_sent || 0,
+              totalActivities: 1,
+              dataSource: 'production'
+            });
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
+      // Fall back to activity logs data
       const { data: activityData, error } = await supabase
         .from('activity_logs')
         .select('*')
@@ -43,7 +103,6 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
       }
 
       if (activityData && activityData.length > 0) {
-        // Calculate totals using the same logic as daily report
         const totals = activityData.reduce((acc, log) => ({
           interviewsScheduled: acc.interviewsScheduled + (log.interviews_scheduled || 0),
           offersSent: acc.offersSent + (log.offers_sent || 0),
@@ -58,15 +117,19 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
           totalActivities: 0
         });
 
-        console.log('Dashboard metrics calculated:', totals);
-        setMetrics(totals);
+        console.log('Dashboard using activity logs data:', totals);
+        setMetrics({
+          ...totals,
+          dataSource: 'activity_logs'
+        });
       } else {
         setMetrics({
           interviewsScheduled: 0,
           offersSent: 0,
           hiresMade: 0,
           onboardingSent: 0,
-          totalActivities: 0
+          totalActivities: 0,
+          dataSource: 'activity_logs'
         });
       }
     } catch (error) {
@@ -92,6 +155,18 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
         },
         () => {
           console.log('Activity log changed, refreshing dashboard metrics');
+          fetchMetrics();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'production_report_entries'
+        },
+        () => {
+          console.log('Production report changed, refreshing dashboard metrics');
           fetchMetrics();
         }
       )
@@ -147,6 +222,9 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Welcome back, {currentUser}</h1>
           <p className="text-gray-600 mt-1">Here's your recruiting performance overview</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Data source: {metrics.dataSource === 'production' ? 'Production Report' : 'Activity Logs'}
+          </p>
         </div>
         <div className="text-right">
           <p className="text-sm text-gray-500">Total Activity</p>
