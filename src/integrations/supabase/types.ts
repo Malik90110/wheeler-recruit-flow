@@ -356,6 +356,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_user_profile: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: {

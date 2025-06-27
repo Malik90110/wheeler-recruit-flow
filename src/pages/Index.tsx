@@ -7,6 +7,7 @@ import { Chat } from '@/components/Chat';
 import { BulletinBoard } from '@/components/BulletinBoard';
 import { Analytics } from '@/components/Analytics';
 import { Contests } from '@/components/Contests';
+import { UserManagement } from '@/components/UserManagement';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -89,6 +90,8 @@ const Index = () => {
         return <Chat currentUser={currentUser} />;
       case 'bulletin':
         return <BulletinBoard />;
+      case 'users':
+        return <UserManagement />;
       default:
         return <Dashboard currentUser={currentUser} />;
     }
