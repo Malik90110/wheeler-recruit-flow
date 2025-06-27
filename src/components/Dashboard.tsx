@@ -30,7 +30,7 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
     if (!user) return;
 
     try {
-      // Get all activity logs for the logged-in user (same as Activity Logger chart)
+      // Use the same query pattern as daily report for consistency
       const { data: activityData, error } = await supabase
         .from('activity_logs')
         .select('*')
@@ -43,7 +43,7 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
       }
 
       if (activityData && activityData.length > 0) {
-        // Calculate totals across all activity logs (same logic as Activity Logger)
+        // Calculate totals using the same logic as daily report
         const totals = activityData.reduce((acc, log) => ({
           interviewsScheduled: acc.interviewsScheduled + (log.interviews_scheduled || 0),
           offersSent: acc.offersSent + (log.offers_sent || 0),
@@ -58,9 +58,9 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
           totalActivities: 0
         });
 
+        console.log('Dashboard metrics calculated:', totals);
         setMetrics(totals);
       } else {
-        // No data available, reset to zero
         setMetrics({
           interviewsScheduled: 0,
           offersSent: 0,

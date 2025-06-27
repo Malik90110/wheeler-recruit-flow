@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export const Analytics = () => {
   const [recruiterFilter, setRecruiterFilter] = useState('all');
-  const { data, loading } = useAnalytics('monthly', recruiterFilter);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [userMetrics, setUserMetrics] = useState({
     totalInterviews: 0,
@@ -20,7 +19,7 @@ export const Analytics = () => {
     if (!user) return;
 
     try {
-      // Get all activity logs for the logged-in user (same as Dashboard and Activity Logger)
+      // Use the same query pattern as Dashboard and daily report
       const { data: activityData, error } = await supabase
         .from('activity_logs')
         .select('*')
@@ -33,7 +32,7 @@ export const Analytics = () => {
       }
 
       if (activityData && activityData.length > 0) {
-        // Calculate totals across all activity logs (same logic as Dashboard)
+        // Calculate totals using the same logic as Dashboard and daily report
         const totals = activityData.reduce((acc, log) => ({
           totalInterviews: acc.totalInterviews + (log.interviews_scheduled || 0),
           totalOffers: acc.totalOffers + (log.offers_sent || 0),
@@ -46,9 +45,9 @@ export const Analytics = () => {
           totalOnboarding: 0
         });
 
+        console.log('Analytics user metrics calculated:', totals);
         setUserMetrics(totals);
       } else {
-        // No data available, reset to zero
         setUserMetrics({
           totalInterviews: 0,
           totalOffers: 0,
@@ -77,7 +76,6 @@ export const Analytics = () => {
         },
         () => {
           console.log('Activity log changed, refreshing analytics metrics');
-          // Trigger a refresh of both user metrics and analytics data
           fetchUserMetrics();
           setRefreshTrigger(prev => prev + 1);
         }
@@ -89,7 +87,7 @@ export const Analytics = () => {
     };
   }, [user]);
 
-  // Pass refreshTrigger to useAnalytics hook to force refresh
+  // Get real-time analytics data
   const { data: realTimeData, loading: realTimeLoading } = useAnalytics('monthly', recruiterFilter, refreshTrigger);
 
   if (realTimeLoading) {
@@ -132,7 +130,7 @@ export const Analytics = () => {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="all">All Recruiters</option>
-            {data.teamData.map((member, index) => (
+            {realTimeData.teamData.map((member, index) => (
               <option key={index} value={member.name.toLowerCase().replace(' ', '')}>
                 {member.name}
               </option>
