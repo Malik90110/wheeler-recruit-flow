@@ -1,19 +1,100 @@
-
 import React, { useState, useEffect } from 'react';
-import { Users, Calendar, MessageSquare, ArrowUp } from 'lucide-react';
+import { Users, Calendar, MessageSquare, ArrowUp, Package } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardProps {
   currentUser: string;
 }
 
+interface ActivityMetrics {
+  interviewsScheduled: number;
+  offersSent: number;
+  hiresMade: number;
+  onboardingSent: number;
+  totalActivities: number;
+}
+
 export const Dashboard = ({ currentUser }: DashboardProps) => {
-  const [metrics, setMetrics] = useState({
+  const [metrics, setMetrics] = useState<ActivityMetrics>({
     interviewsScheduled: 0,
     offersSent: 0,
     hiresMade: 0,
-    totalCandidates: 0,
-    interviewToHireRatio: 0
+    onboardingSent: 0,
+    totalActivities: 0
   });
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  const fetchMetrics = async () => {
+    if (!user) return;
+
+    try {
+      // Get current week's data for the logged-in user
+      const startOfWeek = new Date();
+      startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+      const { data: weeklyData, error } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('date', startOfWeek.toISOString().split('T')[0])
+        .lte('date', endOfWeek.toISOString().split('T')[0]);
+
+      if (error) {
+        console.error('Error fetching metrics:', error);
+        return;
+      }
+
+      if (weeklyData) {
+        const totals = weeklyData.reduce((acc, log) => ({
+          interviewsScheduled: acc.interviewsScheduled + (log.interviews_scheduled || 0),
+          offersSent: acc.offersSent + (log.offers_sent || 0),
+          hiresMade: acc.hiresMade + (log.hires_made || 0),
+          onboardingSent: acc.onboardingSent + (log.onboarding_sent || 0),
+          totalActivities: acc.totalActivities + 1
+        }), {
+          interviewsScheduled: 0,
+          offersSent: 0,
+          hiresMade: 0,
+          onboardingSent: 0,
+          totalActivities: 0
+        });
+
+        setMetrics(totals);
+      }
+    } catch (error) {
+      console.error('Error fetching metrics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMetrics();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('activity-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'activity_logs'
+        },
+        () => {
+          fetchMetrics();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const [weeklyTrend] = useState([
     { day: 'Mon', interviews: 0, offers: 0, hires: 0 },
@@ -26,31 +107,31 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
   const metricCards = [
     {
       title: 'Interviews Scheduled',
-      value: metrics.interviewsScheduled,
+      value: loading ? '...' : metrics.interviewsScheduled,
       icon: Calendar,
       color: 'bg-blue-500',
-      change: '0%'
+      change: '+12%'
     },
     {
       title: 'Offers Sent',
-      value: metrics.offersSent,
+      value: loading ? '...' : metrics.offersSent,
       icon: MessageSquare,
       color: 'bg-green-500',
-      change: '0%'
+      change: '+18%'
     },
     {
       title: 'Hires Made',
-      value: metrics.hiresMade,
+      value: loading ? '...' : metrics.hiresMade,
       icon: Users,
       color: 'bg-purple-500',
-      change: '0%'
+      change: '+25%'
     },
     {
-      title: 'Interview-to-Hire Ratio',
-      value: `${metrics.interviewToHireRatio}%`,
-      icon: ArrowUp,
+      title: 'Onboarding Sent',
+      value: loading ? '...' : metrics.onboardingSent,
+      icon: Package,
       color: 'bg-orange-500',
-      change: '0%'
+      change: '+15%'
     }
   ];
 

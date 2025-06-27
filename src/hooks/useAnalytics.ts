@@ -86,30 +86,101 @@ export const useAnalytics = (timeFilter: string, recruiterFilter: string) => {
           const totalHires = teamData.reduce((sum, member) => sum + member.hires, 0);
           const successRate = totalInterviews > 0 ? Number(((totalHires / totalInterviews) * 100).toFixed(1)) : 0;
 
-          // Generate monthly trends from actual data
-          const monthlyData = new Map();
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          // Generate trends based on time filter
+          const trendsData = new Map();
           
-          activityLogs.forEach((log: any) => {
-            const date = new Date(log.date);
-            const monthKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
-            
-            if (!monthlyData.has(monthKey)) {
-              monthlyData.set(monthKey, {
-                month: monthNames[date.getMonth()],
+          if (timeFilter === 'daily') {
+            // Last 7 days
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            for (let i = 6; i >= 0; i--) {
+              const date = new Date();
+              date.setDate(date.getDate() - i);
+              const dateStr = date.toISOString().split('T')[0];
+              const dayName = dayNames[date.getDay()];
+              
+              trendsData.set(dateStr, {
+                month: dayName,
                 interviews: 0,
                 offers: 0,
                 hires: 0
               });
             }
             
-            const month = monthlyData.get(monthKey);
-            month.interviews += log.interviews_scheduled || 0;
-            month.offers += log.offers_sent || 0;
-            month.hires += log.hires_made || 0;
-          });
+            activityLogs.forEach((log: any) => {
+              const logDate = log.date;
+              if (trendsData.has(logDate)) {
+                const day = trendsData.get(logDate);
+                day.interviews += log.interviews_scheduled || 0;
+                day.offers += log.offers_sent || 0;
+                day.hires += log.hires_made || 0;
+              }
+            });
+          } else if (timeFilter === 'weekly') {
+            // Last 4 weeks
+            for (let i = 3; i >= 0; i--) {
+              const date = new Date();
+              date.setDate(date.getDate() - (i * 7));
+              const weekStart = new Date(date);
+              weekStart.setDate(date.getDate() - date.getDay());
+              const weekKey = `Week ${4 - i}`;
+              
+              trendsData.set(weekKey, {
+                month: weekKey,
+                interviews: 0,
+                offers: 0,
+                hires: 0
+              });
+            }
+            
+            activityLogs.forEach((log: any) => {
+              const logDate = new Date(log.date);
+              const weekStart = new Date(logDate);
+              weekStart.setDate(logDate.getDate() - logDate.getDay());
+              
+              // Find which week this belongs to
+              for (let i = 0; i < 4; i++) {
+                const checkDate = new Date();
+                checkDate.setDate(checkDate.getDate() - (i * 7));
+                const checkWeekStart = new Date(checkDate);
+                checkWeekStart.setDate(checkDate.getDate() - checkDate.getDay());
+                
+                if (Math.abs(weekStart.getTime() - checkWeekStart.getTime()) < 7 * 24 * 60 * 60 * 1000) {
+                  const weekKey = `Week ${4 - i}`;
+                  if (trendsData.has(weekKey)) {
+                    const week = trendsData.get(weekKey);
+                    week.interviews += log.interviews_scheduled || 0;
+                    week.offers += log.offers_sent || 0;
+                    week.hires += log.hires_made || 0;
+                  }
+                  break;
+                }
+              }
+            });
+          } else {
+            // Monthly (default)
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            
+            activityLogs.forEach((log: any) => {
+              const date = new Date(log.date);
+              const monthKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+              
+              if (!trendsData.has(monthKey)) {
+                trendsData.set(monthKey, {
+                  month: monthNames[date.getMonth()],
+                  interviews: 0,
+                  offers: 0,
+                  hires: 0
+                });
+              }
+              
+              const month = trendsData.get(monthKey);
+              month.interviews += log.interviews_scheduled || 0;
+              month.offers += log.offers_sent || 0;
+              month.hires += log.hires_made || 0;
+            });
+          }
 
-          const monthlyTrends = Array.from(monthlyData.values()).slice(-6); // Last 6 months
+          const monthlyTrends = Array.from(trendsData.values()).slice(-6); // Last 6 periods
 
           setData({
             totalInterviews,

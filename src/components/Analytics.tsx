@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { BarChart, Users, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAnalytics } from '@/hooks/useAnalytics';
@@ -44,6 +43,7 @@ export const Analytics = () => {
             onChange={(e) => setTimeFilter(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
+            <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
@@ -124,36 +124,38 @@ export const Analytics = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Monthly Performance Trends</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">
+            {timeFilter === 'daily' ? 'Daily' : timeFilter === 'weekly' ? 'Weekly' : 'Monthly'} Performance Trends
+          </h3>
           {data.monthlyTrends.length > 0 ? (
             <div className="space-y-4">
-              {data.monthlyTrends.map((month, index) => (
+              {data.monthlyTrends.map((period, index) => (
                 <div key={index} className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-600">{month.month}</span>
+                    <span className="text-sm font-medium text-gray-600">{period.month}</span>
                     <div className="flex space-x-4 text-sm text-gray-600">
-                      <span>{month.interviews}I</span>
-                      <span>{month.offers}O</span>
-                      <span>{month.hires}H</span>
+                      <span>{period.interviews}I</span>
+                      <span>{period.offers}O</span>
+                      <span>{period.hires}H</span>
                     </div>
                   </div>
                   <div className="flex space-x-2">
                     <div className="h-2 bg-blue-200 rounded-full flex-1">
                       <div 
                         className="h-2 bg-blue-500 rounded-full"
-                        style={{ width: `${Math.min((month.interviews / Math.max(...data.monthlyTrends.map(m => m.interviews))) * 100, 100)}%` }}
+                        style={{ width: `${Math.min((period.interviews / Math.max(...data.monthlyTrends.map(m => m.interviews))) * 100, 100)}%` }}
                       ></div>
                     </div>
                     <div className="h-2 bg-green-200 rounded-full flex-1">
                       <div 
                         className="h-2 bg-green-500 rounded-full"
-                        style={{ width: `${Math.min((month.offers / Math.max(...data.monthlyTrends.map(m => m.offers))) * 100, 100)}%` }}
+                        style={{ width: `${Math.min((period.offers / Math.max(...data.monthlyTrends.map(m => m.offers))) * 100, 100)}%` }}
                       ></div>
                     </div>
                     <div className="h-2 bg-purple-200 rounded-full flex-1">
                       <div 
                         className="h-2 bg-purple-500 rounded-full"
-                        style={{ width: `${Math.min((month.hires / Math.max(...data.monthlyTrends.map(m => m.hires))) * 100, 100)}%` }}
+                        style={{ width: `${Math.min((period.hires / Math.max(...data.monthlyTrends.map(m => m.hires))) * 100, 100)}%` }}
                       ></div>
                     </div>
                   </div>
@@ -182,7 +184,7 @@ export const Analytics = () => {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{recruiter.name}</p>
-                      <p className="text-sm text-gray-500">{recruiter.hires} hires this month</p>
+                      <p className="text-sm text-gray-500">{recruiter.hires} hires this {timeFilter === 'daily' ? 'day' : timeFilter === 'weekly' ? 'week' : 'month'}</p>
                     </div>
                   </div>
                   <div className="text-right">
