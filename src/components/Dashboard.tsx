@@ -32,7 +32,25 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
     if (!user) return;
 
     try {
-      // First check if there's recent production data for this user
+      console.log('Dashboard: Starting data fetch for user:', user.id);
+      
+      // Get user profile first
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile) {
+        console.log('Dashboard: No profile found');
+        setLoading(false);
+        return;
+      }
+
+      const fullName = `${profile.first_name} ${profile.last_name}`;
+      console.log('Dashboard: User full name:', fullName);
+
+      // First check for recent production data
       const { data: latestReport, error: reportError } = await supabase
         .from('production_reports')
         .select('id, report_date')
@@ -49,6 +67,8 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
         const diffTime = Math.abs(today.getTime() - reportDate.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
+        console.log('Dashboard: Latest report date:', latestReport.report_date, 'Days diff:', diffDays);
+        
         if (diffDays <= 1) {
           useProductionData = true;
           reportId = latestReport.id;
@@ -56,41 +76,35 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
       }
 
       if (useProductionData && reportId) {
-        // Get user's profile to match with production data
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('id', user.id)
+        console.log('Dashboard: Using production data from report:', reportId);
+        
+        // Get production data for this specific user by name
+        const { data: productionEntry, error: entryError } = await supabase
+          .from('production_report_entries')
+          .select('*')
+          .eq('report_id', reportId)
+          .eq('employee_name', fullName)
           .single();
 
-        if (profile) {
-          const fullName = `${profile.first_name} ${profile.last_name}`;
-          
-          // Get production data for this user
-          const { data: productionEntry, error: entryError } = await supabase
-            .from('production_report_entries')
-            .select('*')
-            .eq('report_id', reportId)
-            .eq('employee_name', fullName)
-            .single();
-
-          if (!entryError && productionEntry) {
-            console.log('Dashboard using production data for:', fullName, productionEntry);
-            setMetrics({
-              interviewsScheduled: productionEntry.interviews_scheduled || 0,
-              offersSent: productionEntry.offers_sent || 0,
-              hiresMade: productionEntry.hires_made || 0,
-              onboardingSent: productionEntry.onboarding_sent || 0,
-              totalActivities: 1,
-              dataSource: 'production'
-            });
-            setLoading(false);
-            return;
-          }
+        if (!entryError && productionEntry) {
+          console.log('Dashboard: Found production entry:', productionEntry);
+          setMetrics({
+            interviewsScheduled: productionEntry.interviews_scheduled || 0,
+            offersSent: productionEntry.offers_sent || 0,
+            hiresMade: productionEntry.hires_made || 0,
+            onboardingSent: productionEntry.onboarding_sent || 0,
+            totalActivities: 1,
+            dataSource: 'production'
+          });
+          setLoading(false);
+          return;
+        } else {
+          console.log('Dashboard: No production entry found for user, falling back to activity logs');
         }
       }
 
-      // Fall back to activity logs data
+      // Fall back to activity logs data - sum all entries for this user
+      console.log('Dashboard: Using activity logs data');
       const { data: activityData, error } = await supabase
         .from('activity_logs')
         .select('*')
@@ -98,7 +112,7 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
         .order('date', { ascending: false });
 
       if (error) {
-        console.error('Error fetching metrics:', error);
+        console.error('Dashboard: Error fetching activity logs:', error);
         return;
       }
 
@@ -117,12 +131,13 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
           totalActivities: 0
         });
 
-        console.log('Dashboard using activity logs data:', totals);
+        console.log('Dashboard: Activity logs totals:', totals);
         setMetrics({
           ...totals,
           dataSource: 'activity_logs'
         });
       } else {
+        console.log('Dashboard: No activity logs found');
         setMetrics({
           interviewsScheduled: 0,
           offersSent: 0,
@@ -133,7 +148,7 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
         });
       }
     } catch (error) {
-      console.error('Error fetching metrics:', error);
+      console.error('Dashboard: Error fetching metrics:', error);
     } finally {
       setLoading(false);
     }
@@ -154,7 +169,7 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
           filter: `user_id=eq.${user?.id}`
         },
         () => {
-          console.log('Activity log changed, refreshing dashboard metrics');
+          console.log('Dashboard: Activity log changed, refreshing metrics');
           fetchMetrics();
         }
       )
@@ -166,7 +181,7 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
           table: 'production_report_entries'
         },
         () => {
-          console.log('Production report changed, refreshing dashboard metrics');
+          console.log('Dashboard: Production report changed, refreshing metrics');
           fetchMetrics();
         }
       )

@@ -11,7 +11,8 @@ export const Analytics = () => {
     totalInterviews: 0,
     totalOffers: 0,
     totalHires: 0,
-    totalOnboarding: 0
+    totalOnboarding: 0,
+    dataSource: 'activity_logs'
   });
   const { user } = useAuth();
 
@@ -19,7 +20,76 @@ export const Analytics = () => {
     if (!user) return;
 
     try {
-      // Use the same query pattern as Dashboard and daily report
+      console.log('Analytics: Starting data fetch for user:', user.id);
+      
+      // Get user profile first
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile) {
+        console.log('Analytics: No profile found');
+        return;
+      }
+
+      const fullName = `${profile.first_name} ${profile.last_name}`;
+      console.log('Analytics: User full name:', fullName);
+
+      // Check for recent production data first
+      const { data: latestReport, error: reportError } = await supabase
+        .from('production_reports')
+        .select('id, report_date')
+        .order('report_date', { ascending: false })
+        .limit(1)
+        .single();
+
+      let useProductionData = false;
+      let reportId = null;
+
+      if (!reportError && latestReport) {
+        const reportDate = new Date(latestReport.report_date);
+        const today = new Date();
+        const diffTime = Math.abs(today.getTime() - reportDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        console.log('Analytics: Latest report date:', latestReport.report_date, 'Days diff:', diffDays);
+        
+        if (diffDays <= 1) {
+          useProductionData = true;
+          reportId = latestReport.id;
+        }
+      }
+
+      if (useProductionData && reportId) {
+        console.log('Analytics: Using production data from report:', reportId);
+        
+        // Get production data for this specific user by name
+        const { data: productionEntry, error: entryError } = await supabase
+          .from('production_report_entries')
+          .select('*')
+          .eq('report_id', reportId)
+          .eq('employee_name', fullName)
+          .single();
+
+        if (!entryError && productionEntry) {
+          console.log('Analytics: Found production entry:', productionEntry);
+          setUserMetrics({
+            totalInterviews: productionEntry.interviews_scheduled || 0,
+            totalOffers: productionEntry.offers_sent || 0,
+            totalHires: productionEntry.hires_made || 0,
+            totalOnboarding: productionEntry.onboarding_sent || 0,
+            dataSource: 'production'
+          });
+          return;
+        } else {
+          console.log('Analytics: No production entry found for user, falling back to activity logs');
+        }
+      }
+
+      // Fall back to activity logs data - sum all entries for this user
+      console.log('Analytics: Using activity logs data');
       const { data: activityData, error } = await supabase
         .from('activity_logs')
         .select('*')
@@ -27,12 +97,11 @@ export const Analytics = () => {
         .order('date', { ascending: false });
 
       if (error) {
-        console.error('Error fetching user metrics:', error);
+        console.error('Analytics: Error fetching activity logs:', error);
         return;
       }
 
       if (activityData && activityData.length > 0) {
-        // Calculate totals using the same logic as Dashboard and daily report
         const totals = activityData.reduce((acc, log) => ({
           totalInterviews: acc.totalInterviews + (log.interviews_scheduled || 0),
           totalOffers: acc.totalOffers + (log.offers_sent || 0),
@@ -45,18 +114,23 @@ export const Analytics = () => {
           totalOnboarding: 0
         });
 
-        console.log('Analytics user metrics calculated:', totals);
-        setUserMetrics(totals);
+        console.log('Analytics: Activity logs totals:', totals);
+        setUserMetrics({
+          ...totals,
+          dataSource: 'activity_logs'
+        });
       } else {
+        console.log('Analytics: No activity logs found');
         setUserMetrics({
           totalInterviews: 0,
           totalOffers: 0,
           totalHires: 0,
-          totalOnboarding: 0
+          totalOnboarding: 0,
+          dataSource: 'activity_logs'
         });
       }
     } catch (error) {
-      console.error('Error fetching user metrics:', error);
+      console.error('Analytics: Error fetching user metrics:', error);
     }
   };
 
@@ -75,7 +149,20 @@ export const Analytics = () => {
           filter: `user_id=eq.${user?.id}`
         },
         () => {
-          console.log('Activity log changed, refreshing analytics metrics');
+          console.log('Analytics: Activity log changed, refreshing metrics');
+          fetchUserMetrics();
+          setRefreshTrigger(prev => prev + 1);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'production_report_entries'
+        },
+        () => {
+          console.log('Analytics: Production report changed, refreshing metrics');
           fetchUserMetrics();
           setRefreshTrigger(prev => prev + 1);
         }
@@ -87,7 +174,7 @@ export const Analytics = () => {
     };
   }, [user]);
 
-  // Get real-time analytics data
+  // Get real-time analytics data for team performance
   const { data: realTimeData, loading: realTimeLoading } = useAnalytics('monthly', recruiterFilter, refreshTrigger);
 
   if (realTimeLoading) {
@@ -121,6 +208,9 @@ export const Analytics = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Performance Analytics</h1>
           <p className="text-gray-600 mt-1">Your performance insights and team trends</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Personal data source: {userMetrics.dataSource === 'production' ? 'Production Report' : 'Activity Logs'}
+          </p>
         </div>
         
         <div className="mt-4 lg:mt-0">
