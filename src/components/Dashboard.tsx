@@ -62,18 +62,6 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
 
       // Check for production reports
       console.log('Dashboard: Checking for production reports...');
-      const { data: reports, error: reportsError } = await supabase
-        .from('production_reports')
-        .select('id, report_date, status')
-        .order('report_date', { ascending: false });
-
-      console.log('Dashboard: All production reports:', reports);
-
-      if (reportsError) {
-        console.error('Dashboard: Reports error:', reportsError);
-      }
-
-      // Get the latest report
       const { data: latestReport, error: reportError } = await supabase
         .from('production_reports')
         .select('id, report_date')
@@ -108,30 +96,49 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
       if (useProductionData && reportId) {
         console.log('Dashboard: USING PRODUCTION DATA from report:', reportId);
         
-        // Get all production entries for this report
+        // Get all production entries for this report to see what names exist
         const { data: allEntries, error: allEntriesError } = await supabase
           .from('production_report_entries')
           .select('*')
           .eq('report_id', reportId);
 
         console.log('Dashboard: All production entries for report:', allEntries);
+        console.log('Dashboard: All available names in production report:', 
+          allEntries?.map(entry => entry.employee_name) || []);
 
-        // Get production data for this specific user by name
-        const { data: productionEntry, error: entryError } = await supabase
-          .from('production_report_entries')
-          .select('*')
-          .eq('report_id', reportId)
-          .eq('employee_name', fullName)
-          .single();
+        // Try to find production data with flexible name matching
+        let productionEntry = null;
+        
+        if (allEntries && allEntries.length > 0) {
+          // Try exact match first
+          productionEntry = allEntries.find(entry => 
+            entry.employee_name.toLowerCase() === fullName.toLowerCase()
+          );
+          
+          // If no exact match, try partial matches
+          if (!productionEntry) {
+            const firstName = profile.first_name.toLowerCase();
+            const lastName = profile.last_name.toLowerCase();
+            
+            productionEntry = allEntries.find(entry => {
+              const entryName = entry.employee_name.toLowerCase();
+              return entryName.includes(firstName) && entryName.includes(lastName);
+            });
+          }
+          
+          // If still no match, try even more flexible matching
+          if (!productionEntry) {
+            const userEmail = user.email?.toLowerCase() || '';
+            productionEntry = allEntries.find(entry => {
+              const entryEmail = entry.employee_email?.toLowerCase() || '';
+              return entryEmail === userEmail;
+            });
+          }
+        }
 
-        console.log('Dashboard: Production entry query:', {
-          reportId,
-          fullName,
-          productionEntry,
-          entryError
-        });
+        console.log('Dashboard: Production entry found:', productionEntry);
 
-        if (!entryError && productionEntry) {
+        if (productionEntry) {
           console.log('Dashboard: FOUND PRODUCTION ENTRY:', productionEntry);
           const productionMetrics = {
             interviewsScheduled: productionEntry.interviews_scheduled || 0,
@@ -147,7 +154,11 @@ export const Dashboard = ({ currentUser }: DashboardProps) => {
           console.log('=== DASHBOARD DATA FETCH END (PRODUCTION) ===');
           return;
         } else {
-          console.log('Dashboard: No production entry found for user, error:', entryError);
+          console.log('Dashboard: No matching production entry found');
+          console.log('Dashboard: User full name to match:', fullName);
+          console.log('Dashboard: User email to match:', user.email);
+          console.log('Dashboard: Available names in report:', 
+            allEntries?.map(entry => `"${entry.employee_name}" (${entry.employee_email})`) || []);
         }
       }
 
