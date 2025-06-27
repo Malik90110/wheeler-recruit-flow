@@ -65,16 +65,50 @@ export const Analytics = () => {
       if (useProductionData && reportId) {
         console.log('Analytics: Using production data from report:', reportId);
         
-        // Get production data for this specific user by name
-        const { data: productionEntry, error: entryError } = await supabase
+        // Get all production entries for this report to see what names exist
+        const { data: allEntries, error: allEntriesError } = await supabase
           .from('production_report_entries')
           .select('*')
-          .eq('report_id', reportId)
-          .eq('employee_name', fullName)
-          .single();
+          .eq('report_id', reportId);
 
-        if (!entryError && productionEntry) {
-          console.log('Analytics: Found production entry:', productionEntry);
+        console.log('Analytics: All production entries for report:', allEntries);
+        console.log('Analytics: All available names in production report:', 
+          allEntries?.map(entry => entry.employee_name) || []);
+
+        // Try to find production data with flexible name matching
+        let productionEntry = null;
+        
+        if (allEntries && allEntries.length > 0) {
+          // Try exact match first
+          productionEntry = allEntries.find(entry => 
+            entry.employee_name.toLowerCase() === fullName.toLowerCase()
+          );
+          
+          // If no exact match, try partial matches
+          if (!productionEntry) {
+            const firstName = profile.first_name.toLowerCase();
+            const lastName = profile.last_name.toLowerCase();
+            
+            productionEntry = allEntries.find(entry => {
+              const entryName = entry.employee_name.toLowerCase();
+              return entryName.includes(firstName) && entryName.includes(lastName);
+            });
+          }
+          
+          // If still no match, try even more flexible matching
+          if (!productionEntry) {
+            const userEmail = user.email?.toLowerCase() || '';
+            productionEntry = allEntries.find(entry => {
+              const entryEmail = entry.employee_email?.toLowerCase() || '';
+              return entryEmail === userEmail;
+            });
+          }
+        }
+
+        console.log('Analytics: Production entry found:', productionEntry);
+
+        if (productionEntry) {
+          console.log('Analytics: FOUND PRODUCTION ENTRY:', productionEntry);
           setUserMetrics({
             totalInterviews: productionEntry.interviews_scheduled || 0,
             totalOffers: productionEntry.offers_sent || 0,
@@ -84,7 +118,11 @@ export const Analytics = () => {
           });
           return;
         } else {
-          console.log('Analytics: No production entry found for user, falling back to activity logs');
+          console.log('Analytics: No matching production entry found');
+          console.log('Analytics: User full name to match:', fullName);
+          console.log('Analytics: User email to match:', user.email);
+          console.log('Analytics: Available names in report:', 
+            allEntries?.map(entry => `"${entry.employee_name}" (${entry.employee_email})`) || []);
         }
       }
 
