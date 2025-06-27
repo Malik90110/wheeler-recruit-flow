@@ -15,12 +15,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
+    console.error('useAuth must be used within an AuthProvider - make sure your component is wrapped with AuthProvider');
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  console.log('AuthProvider: Initializing auth provider');
+  
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,6 +68,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     loading,
     signOut
   };
+
+  console.log('AuthProvider: Rendering with user:', user?.email || 'no user');
 
   return (
     <AuthContext.Provider value={value}>
