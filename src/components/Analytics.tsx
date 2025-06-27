@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { BarChart, Users, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAnalytics } from '@/hooks/useAnalytics';
@@ -6,9 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const Analytics = () => {
-  const [timeFilter, setTimeFilter] = useState('monthly');
   const [recruiterFilter, setRecruiterFilter] = useState('all');
-  const { data, loading } = useAnalytics(timeFilter, recruiterFilter);
+  const { data, loading } = useAnalytics('monthly', recruiterFilter);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [userMetrics, setUserMetrics] = useState({
     totalInterviews: 0,
@@ -92,7 +90,7 @@ export const Analytics = () => {
   }, [user]);
 
   // Pass refreshTrigger to useAnalytics hook to force refresh
-  const { data: realTimeData, loading: realTimeLoading } = useAnalytics(timeFilter, recruiterFilter, refreshTrigger);
+  const { data: realTimeData, loading: realTimeLoading } = useAnalytics('monthly', recruiterFilter, refreshTrigger);
 
   if (realTimeLoading) {
     return (
@@ -127,18 +125,7 @@ export const Analytics = () => {
           <p className="text-gray-600 mt-1">Your performance insights and team trends</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mt-4 lg:mt-0">
-          <select 
-            value={timeFilter}
-            onChange={(e) => setTimeFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-          </select>
-          
+        <div className="mt-4 lg:mt-0">
           <select 
             value={recruiterFilter}
             onChange={(e) => setRecruiterFilter(e.target.value)}
@@ -214,9 +201,7 @@ export const Analytics = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">
-            {timeFilter === 'daily' ? 'Daily' : timeFilter === 'weekly' ? 'Weekly' : 'Monthly'} Performance Trends
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Monthly Performance Trends</h3>
           {realTimeData.monthlyTrends.length > 0 ? (
             <div className="space-y-4">
               {realTimeData.monthlyTrends.map((period, index) => (
@@ -274,7 +259,7 @@ export const Analytics = () => {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{recruiter.name}</p>
-                      <p className="text-sm text-gray-500">{recruiter.hires} hires this {timeFilter === 'daily' ? 'day' : timeFilter === 'weekly' ? 'week' : 'month'}</p>
+                      <p className="text-sm text-gray-500">{recruiter.hires} hires this month</p>
                     </div>
                   </div>
                   <div className="text-right">
