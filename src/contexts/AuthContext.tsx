@@ -28,6 +28,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Add listener to catch when Supabase rehydrates and clear session
+  useEffect(() => {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        // Immediately sign out again
+        supabase.auth.signOut();
+      }
+    });
+
+    return () => {
+      listener?.subscription.unsubscribe();
+    };
+  }, []);
+
+  // HMR disposal for Vite projects
+  useEffect(() => {
+    if (import.meta.hot) {
+      import.meta.hot.dispose(() => {
+        localStorage.removeItem('supabase.auth.token');
+      });
+    }
+  }, []);
+
   useEffect(() => {
     console.log('AuthProvider: Setting up auth with sessionStorage');
     
