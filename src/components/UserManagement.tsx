@@ -1,253 +1,207 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRoles } from '@/hooks/useUserRoles';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Trash2, Shield, User, Users } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { Trash2, Users, Shield, UserCheck } from 'lucide-react';
+import { DailyReportTrigger } from './DailyReportTrigger';
 
-interface Profile {
+interface UserProfile {
   id: string;
   first_name: string;
   last_name: string;
   created_at: string;
   roles?: string[];
+  email?: string;
 }
 
 export const UserManagement = () => {
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const { isManager, loading: rolesLoading } = useUserRoles();
+  const [deletingUser, setDeletingUser] = useState<string | null>(null);
+  const { isManager, isAdmin } = useUserRoles();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!rolesLoading && isManager) {
-      fetchProfiles();
+    if (isManager) {
+      fetchUsers();
     }
-  }, [isManager, rolesLoading]);
+  }, [isManager]);
 
-  const fetchProfiles = async () => {
+  const fetchUsers = async () => {
     try {
+      setLoading(true);
+      
       // Fetch all profiles
-      const { data: profilesData, error: profilesError } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        toast({
-          title: "Error",
-          description: "Failed to fetch user profiles",
-          variant: "destructive"
-        });
-        return;
-      }
+      if (profilesError) throw profilesError;
 
-      // Fetch roles for each user
-      const profilesWithRoles = await Promise.all(
-        (profilesData || []).map(async (profile) => {
-          const { data: rolesData } = await supabase.rpc('get_user_roles', {
-            _user_id: profile.id
-          });
-          
-          return {
-            ...profile,
-            roles: rolesData?.map((item: any) => item.role) || []
-          };
-        })
-      );
+      // Fetch user roles
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
 
-      setProfiles(profilesWithRoles);
+      if (rolesError) throw rolesError;
+
+      // Fetch auth users to get emails
+      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+      
+      // Combine the data
+      const usersWithRoles = profiles?.map(profile => {
+        const roles = userRoles?.filter(role => role.user_id === profile.id).map(role => role.role) || [];
+        const authUser = authData?.users?.find(user => user.id === profile.id);
+        return {
+          ...profile,
+          roles,
+          email: authUser?.email || 'No email'
+        };
+      }) || [];
+
+      setUsers(usersWithRoles);
     } catch (error) {
-      console.error('Error fetching profiles:', error);
+      console.error('Error fetching users:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch user profiles",
-        variant: "destructive"
+        description: "Failed to fetch users. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteUser = async () => {
-    if (!userToDelete) return;
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to delete ${userName}? This action cannot be undone and will remove all their data.`)) {
+      return;
+    }
 
-    setDeleting(true);
+    setDeletingUser(userId);
+    
     try {
       const { data, error } = await supabase.rpc('delete_user_profile', {
-        _user_id: userToDelete.id
+        _user_id: userId
       });
 
-      if (error) {
-        console.error('Error deleting user:', error);
-        toast({
-          title: "Error",
-          description: "Failed to delete user profile",
-          variant: "destructive"
-        });
-        return;
-      }
+      if (error) throw error;
 
       if (data) {
         toast({
-          title: "Success",
-          description: `Successfully deleted ${userToDelete.first_name} ${userToDelete.last_name}'s profile`
+          title: "User Deleted",
+          description: `${userName} has been successfully deleted.`,
         });
         
-        // Remove the deleted user from the list
-        setProfiles(profiles.filter(p => p.id !== userToDelete.id));
+        // Refresh the users list
+        await fetchUsers();
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to delete user profile",
-          variant: "destructive"
-        });
+        throw new Error('Failed to delete user profile');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting user:', error);
       toast({
         title: "Error",
-        description: "Failed to delete user profile",
-        variant: "destructive"
+        description: error.message || "Failed to delete user. Please try again.",
+        variant: "destructive",
       });
     } finally {
-      setDeleting(false);
-      setDeleteDialogOpen(false);
-      setUserToDelete(null);
+      setDeletingUser(null);
     }
   };
 
-  const openDeleteDialog = (profile: Profile) => {
-    setUserToDelete(profile);
-    setDeleteDialogOpen(true);
-  };
-
-  const getRoleIcon = (roles: string[]) => {
-    if (roles.includes('admin')) return <Shield className="h-4 w-4 text-red-500" />;
-    if (roles.includes('manager')) return <Users className="h-4 w-4 text-blue-500" />;
-    return <User className="h-4 w-4 text-gray-500" />;
-  };
-
-  const getRoleText = (roles: string[]) => {
-    if (roles.includes('admin')) return 'Admin';
-    if (roles.includes('manager')) return 'Manager';
-    return 'Employee';
-  };
-
-  if (rolesLoading || loading) {
+  if (!isManager) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading user management...</p>
-        </div>
+      <div className="text-center py-8">
+        <Shield className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Access Restricted</h3>
+        <p className="text-gray-500">You need manager or admin privileges to access user management.</p>
       </div>
     );
   }
 
-  if (!isManager) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
-            <CardDescription>
-              You don't have permission to access user management features.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="text-center py-8">
+        <div className="w-8 h-8 bg-blue-600 rounded-lg mx-auto mb-4 animate-pulse"></div>
+        <p className="text-gray-600">Loading users...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>User Management</CardTitle>
-          <CardDescription>
-            Manage user profiles and permissions. Only managers and admins can delete user profiles.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {profiles.map((profile) => (
-                <TableRow key={profile.id}>
-                  <TableCell className="font-medium">
-                    {profile.first_name} {profile.last_name}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {getRoleIcon(profile.roles || [])}
-                      {getRoleText(profile.roles || [])}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(profile.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => openDeleteDialog(profile)}
-                      className="flex items-center gap-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
+          <p className="text-gray-600">Manage user accounts and permissions</p>
+        </div>
+        <Badge variant="secondary" className="flex items-center gap-1">
+          <Users className="w-4 h-4" />
+          {users.length} Users
+        </Badge>
+      </div>
 
-          {profiles.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No user profiles found.
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Daily Report Trigger */}
+      <div className="flex justify-center">
+        <DailyReportTrigger />
+      </div>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete User Profile</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {userToDelete?.first_name} {userToDelete?.last_name}'s profile? 
-              This action will permanently remove all their data including activity logs, announcements, 
-              and contest participations. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteUser}
-              disabled={deleting}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {deleting ? 'Deleting...' : 'Delete Profile'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <div className="grid gap-4">
+        {users.map((user) => (
+          <Card key={user.id}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">
+                    {user.first_name} {user.last_name}
+                  </CardTitle>
+                  <CardDescription className="flex items-center gap-2 mt-1">
+                    <span>{user.email}</span>
+                    {user.roles && user.roles.length > 0 && (
+                      <div className="flex gap-1">
+                        {user.roles.map((role, index) => (
+                          <Badge key={index} variant={role === 'admin' ? 'destructive' : role === 'manager' ? 'default' : 'secondary'}>
+                            {role}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-green-500" />
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteUser(user.id, `${user.first_name} ${user.last_name}`)}
+                    disabled={deletingUser === user.id}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    {deletingUser === user.id ? 'Deleting...' : 'Delete'}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-500">
+                Account created: {new Date(user.created_at).toLocaleDateString()}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {users.length === 0 && (
+        <div className="text-center py-8">
+          <Users className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Users Found</h3>
+          <p className="text-gray-500">There are no users in the system yet.</p>
+        </div>
+      )}
     </div>
   );
 };
