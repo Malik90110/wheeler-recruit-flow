@@ -140,6 +140,83 @@ export type Database = {
         }
         Relationships: []
       }
+      contest_participants: {
+        Row: {
+          contest_id: string
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          contest_id: string
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          contest_id?: string
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contest_participants_contest_id_fkey"
+            columns: ["contest_id"]
+            isOneToOne: false
+            referencedRelation: "contests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contests: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string
+          end_date: string
+          id: string
+          participants: number
+          prize: string
+          rules: string[]
+          start_date: string
+          status: string
+          target_metrics: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description: string
+          end_date: string
+          id?: string
+          participants?: number
+          prize: string
+          rules?: string[]
+          start_date: string
+          status?: string
+          target_metrics?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string
+          end_date?: string
+          id?: string
+          participants?: number
+          prize?: string
+          rules?: string[]
+          start_date?: string
+          status?: string
+          target_metrics?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       production_report_entries: {
         Row: {
           candidates_contacted: number | null
