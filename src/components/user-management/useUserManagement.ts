@@ -32,15 +32,17 @@ export const useUserManagement = (isManager: boolean) => {
       // Fetch auth users to get emails
       const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
       
-      // Combine the data with proper null checks
+      // Combine the data with proper type checking
       const usersWithRoles = profiles?.map(profile => {
-        const roles = userRoles?.filter(role => role.user_id === profile.id).map(role => role.role) || [];
+        // Filter roles for this specific user
+        const userSpecificRoles = userRoles?.filter(role => role.user_id === profile.id) || [];
+        const roles = userSpecificRoles.map(role => role.role);
         
-        // Add null check for authData and authData.users
+        // Find auth user with proper type checking
         let email = 'No email';
-        if (authData && authData.users) {
-          const authUser = authData.users.find(user => user.id === profile.id);
-          if (authUser && authUser.email) {
+        if (authData?.users && Array.isArray(authData.users)) {
+          const authUser = authData.users.find(user => user?.id === profile.id);
+          if (authUser?.email) {
             email = authUser.email;
           }
         }
