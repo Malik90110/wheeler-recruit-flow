@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.2";
 import { Resend } from "npm:resend@2.0.0";
@@ -55,16 +54,13 @@ const generateDailyReport = async (): Promise<DailyReportData> => {
     throw profilesError;
   }
 
-  // Get activity logs for the last 30 days with profile data
+  // Get activity logs for the last 30 days
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   
   const { data: activityLogs, error: logsError } = await supabase
     .from('activity_logs')
-    .select(`
-      *,
-      profiles!inner(first_name, last_name)
-    `)
+    .select('*')
     .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
     .order('date', { ascending: false });
 
@@ -76,16 +72,19 @@ const generateDailyReport = async (): Promise<DailyReportData> => {
   // Get yesterday's specific activity
   const { data: yesterdayLogs, error: yesterdayError } = await supabase
     .from('activity_logs')
-    .select(`
-      *,
-      profiles!inner(first_name, last_name)
-    `)
+    .select('*')
     .eq('date', yesterdayStr);
 
   if (yesterdayError) {
     console.error('Error fetching yesterday logs:', yesterdayError);
     throw yesterdayError;
   }
+
+  // Create a map of user IDs to names
+  const userMap = new Map();
+  profiles?.forEach(profile => {
+    userMap.set(profile.id, `${profile.first_name} ${profile.last_name}`);
+  });
 
   // Calculate totals from all logs
   const totalInterviews = activityLogs?.reduce((sum, log) => sum + (log.interviews_scheduled || 0), 0) || 0;
@@ -97,7 +96,7 @@ const generateDailyReport = async (): Promise<DailyReportData> => {
   const teamPerformance = new Map();
   
   activityLogs?.forEach((log: any) => {
-    const name = `${log.profiles.first_name} ${log.profiles.last_name}`;
+    const name = userMap.get(log.user_id) || 'Unknown User';
     
     if (!teamPerformance.has(name)) {
       teamPerformance.set(name, {
@@ -125,7 +124,7 @@ const generateDailyReport = async (): Promise<DailyReportData> => {
 
   // Yesterday's activity
   const yesterdayActivity = yesterdayLogs?.map((log: any) => ({
-    name: `${log.profiles.first_name} ${log.profiles.last_name}`,
+    name: userMap.get(log.user_id) || 'Unknown User',
     interviews: log.interviews_scheduled || 0,
     offers: log.offers_sent || 0,
     hires: log.hires_made || 0,
@@ -266,11 +265,7 @@ const sendReportToManagers = async (reportData: DailyReportData) => {
   // Get all managers and admins
   const { data: managerRoles, error: rolesError } = await supabase
     .from('user_roles')
-    .select(`
-      user_id,
-      role,
-      profiles!inner(first_name, last_name)
-    `)
+    .select('user_id, role')
     .in('role', ['manager', 'admin']);
 
   if (rolesError) {
@@ -284,7 +279,6 @@ const sendReportToManagers = async (reportData: DailyReportData) => {
   }
 
   // Get user emails from auth.users (using service key)
-  const managerUserIds = managerRoles.map(role => role.user_id);
   const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
   
   if (authError) {
@@ -292,6 +286,7 @@ const sendReportToManagers = async (reportData: DailyReportData) => {
     throw authError;
   }
 
+  const managerUserIds = managerRoles.map(role => role.user_id);
   const managerEmails = authUsers.users
     .filter(user => managerUserIds.includes(user.id))
     .map(user => user.email)
