@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -39,9 +40,9 @@ export const useUserManagement = (isManager: boolean) => {
         
         // Find auth user with proper type checking
         let email = 'No email';
-        if (authData?.users && Array.isArray(authData.users)) {
-          const authUser = (authData.users as any[]).find((user: any) => user?.id === profile.id);
-          if (authUser?.email) {
+        if (authData?.users && Array.isArray(authData.users) && authData.users.length > 0) {
+          const authUser = authData.users.find((user: any) => user && user.id === profile.id);
+          if (authUser && authUser.email) {
             email = authUser.email;
           }
         }
