@@ -135,11 +135,7 @@ export const Contests = ({ currentUser }: ContestsProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {activeContests.map((contest) => (
                 <div key={contest.id} className="space-y-4">
-                  <ContestCard contest={{
-                    ...contest,
-                    startDate: new Date(contest.start_date),
-                    endDate: new Date(contest.end_date)
-                  }} currentUser={currentUser} />
+                  <ContestCard contest={contest} currentUser={currentUser} />
                   <ContestManagement
                     contest={contest}
                     onStart={startContest}
@@ -174,11 +170,7 @@ export const Contests = ({ currentUser }: ContestsProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {upcomingContests.map((contest) => (
                 <div key={contest.id} className="space-y-4">
-                  <ContestCard contest={{
-                    ...contest,
-                    startDate: new Date(contest.start_date),
-                    endDate: new Date(contest.end_date)
-                  }} currentUser={currentUser} />
+                  <ContestCard contest={contest} currentUser={currentUser} />
                   <ContestManagement
                     contest={contest}
                     onStart={startContest}
@@ -205,11 +197,7 @@ export const Contests = ({ currentUser }: ContestsProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {pausedContests.map((contest) => (
                 <div key={contest.id} className="space-y-4">
-                  <ContestCard contest={{
-                    ...contest,
-                    startDate: new Date(contest.start_date),
-                    endDate: new Date(contest.end_date)
-                  }} currentUser={currentUser} />
+                  <ContestCard contest={contest} currentUser={currentUser} />
                   <ContestManagement
                     contest={contest}
                     onStart={startContest}
@@ -235,11 +223,7 @@ export const Contests = ({ currentUser }: ContestsProps) => {
           {completedContests.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {completedContests.map((contest) => (
-                <ContestCard key={contest.id} contest={{
-                  ...contest,
-                  startDate: new Date(contest.start_date),
-                  endDate: new Date(contest.end_date)
-                }} currentUser={currentUser} />
+                <ContestCard key={contest.id} contest={contest} currentUser={currentUser} />
               ))}
             </div>
           ) : (

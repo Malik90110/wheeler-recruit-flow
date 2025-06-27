@@ -36,7 +36,9 @@ export const useContests = () => {
         return;
       }
 
-      setContests(data || []);
+      // Type assertion to ensure proper typing
+      const typedData = data as Contest[];
+      setContests(typedData || []);
     } catch (error) {
       console.error('Error fetching contests:', error);
     } finally {

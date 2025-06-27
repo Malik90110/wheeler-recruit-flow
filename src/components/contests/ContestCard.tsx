@@ -10,13 +10,13 @@ interface Contest {
   title: string;
   description: string;
   rules: string[];
-  startDate: Date;
-  endDate: Date;
-  status: 'active' | 'upcoming' | 'completed';
-  targetMetrics: string[];
+  start_date: string;
+  end_date: string;
+  status: 'active' | 'upcoming' | 'completed' | 'paused';
+  target_metrics: string[];
   prize: string;
   participants: number;
-  createdBy: string;
+  created_by: string;
 }
 
 interface ContestCardProps {
@@ -30,6 +30,7 @@ export const ContestCard = ({ contest, currentUser }: ContestCardProps) => {
       case 'active': return 'bg-green-100 text-green-700';
       case 'upcoming': return 'bg-blue-100 text-blue-700';
       case 'completed': return 'bg-gray-100 text-gray-700';
+      case 'paused': return 'bg-yellow-100 text-yellow-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
@@ -39,19 +40,21 @@ export const ContestCard = ({ contest, currentUser }: ContestCardProps) => {
       case 'active': return <Trophy className="w-4 h-4" />;
       case 'upcoming': return <Clock className="w-4 h-4" />;
       case 'completed': return <CheckCircle className="w-4 h-4" />;
+      case 'paused': return <Clock className="w-4 h-4" />;
       default: return <Trophy className="w-4 h-4" />;
     }
   };
 
   const getDaysRemaining = () => {
     const today = new Date();
-    const endDate = contest.endDate;
+    const endDate = new Date(contest.end_date);
     const diffTime = endDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 
@@ -85,7 +88,7 @@ export const ContestCard = ({ contest, currentUser }: ContestCardProps) => {
             <div>
               <div className="font-medium">Duration</div>
               <div className="text-gray-600">
-                {formatDate(contest.startDate)} - {formatDate(contest.endDate)}
+                {formatDate(contest.start_date)} - {formatDate(contest.end_date)}
               </div>
             </div>
           </div>
@@ -116,7 +119,7 @@ export const ContestCard = ({ contest, currentUser }: ContestCardProps) => {
             <span className="font-medium text-sm">Target Metrics:</span>
           </div>
           <div className="flex flex-wrap gap-1">
-            {contest.targetMetrics.map((metric) => (
+            {contest.target_metrics.map((metric) => (
               <Badge key={metric} variant="outline" className="text-xs">
                 {metric}
               </Badge>
@@ -146,7 +149,7 @@ export const ContestCard = ({ contest, currentUser }: ContestCardProps) => {
 
         <div className="flex items-center justify-between pt-4 border-t">
           <span className="text-xs text-gray-500">
-            Created by {contest.createdBy}
+            Created by {contest.created_by}
           </span>
           
           {contest.status === 'active' && (
